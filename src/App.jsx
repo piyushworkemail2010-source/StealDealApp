@@ -16,25 +16,21 @@ export default function App() {
     const saved = localStorage.getItem('stealdeal_deals');
     let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
     
-    // Purge duplicates and legacy broken URLs from state
+    // Purge hardcoded static deals ('deal-1' through 'deal-6') and duplicates
     const seenTitles = new Set();
     const cleanDeals = [];
 
     for (const d of loaded) {
+      if (d.id && d.id.startsWith('deal-')) continue; // Drop old static deals
+
       const titleSlug = d.title ? d.title.toLowerCase().trim() : '';
       if (!titleSlug || seenTitles.has(titleSlug)) continue;
 
       seenTitles.add(titleSlug);
-
-      // Clean outdated sample URLs
-      let fixedUrl = d.productUrl;
-      if (fixedUrl && fixedUrl.includes('B0CY5Q2C46')) {
-        fixedUrl = 'https://www.amazon.in/dp/B0CY5N6G1P?tag=khoshai-21';
-      }
-      cleanDeals.push({ ...d, productUrl: fixedUrl });
+      cleanDeals.push(d);
     }
 
-    return cleanDeals.length > 0 ? cleanDeals : INITIAL_DEALS;
+    return cleanDeals;
   });
 
   const [activeCategory, setActiveCategory] = useState('All Deals 🔥');
