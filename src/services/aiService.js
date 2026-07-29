@@ -70,10 +70,6 @@ export async function fetchLiveDeals() {
   }
 
   // Dynamic AI Fallback deal generator when offline or in dev preview
-  const stores = ['Amazon.in', 'Flipkart', 'Myntra', 'Ajio'];
-  const categories = ['Electronics', 'Gaming', 'Fashion', 'Audio'];
-  const randomIndex = Math.floor(Math.random() * 4);
-
   const fallbackLiveItems = [
     {
       id: `live-scan-${Date.now()}-1`,
@@ -91,7 +87,7 @@ export async function fetchLiveDeals() {
       upvotes: 620,
       expiredVotes: 0,
       imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80',
-      productUrl: generateAffiliateUrl('https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4', 'Flipkart'),
+      productUrl: generateAffiliateUrl('https://www.flipkart.com/search?q=iPhone+15', 'Flipkart'),
       verifiedTime: 'Just now ⚡',
       description: 'NVIDIA AI verified flash drop! Stacked card instant cashback + seller coupon.'
     },
@@ -111,7 +107,7 @@ export async function fetchLiveDeals() {
       upvotes: 490,
       expiredVotes: 0,
       imageUrl: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80',
-      productUrl: generateAffiliateUrl('https://www.amazon.in/dp/B0CY5Q2C46', 'Amazon.in'),
+      productUrl: generateAffiliateUrl('https://www.amazon.in/s?k=PlayStation+5+Slim', 'Amazon.in'),
       verifiedTime: 'Just now ⚡',
       description: 'Price mistake listing drop. Historical lowest price ever recorded in India!'
     }

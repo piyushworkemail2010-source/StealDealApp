@@ -14,7 +14,14 @@ import { Tag, Sparkles } from 'lucide-react';
 export default function App() {
   const [deals, setDeals] = useState(() => {
     const saved = localStorage.getItem('stealdeal_deals');
-    return saved ? JSON.parse(saved) : INITIAL_DEALS;
+    let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
+    // Sanitize any legacy cached deals with outdated product links
+    return loaded.map(d => {
+      if (d.productUrl && d.productUrl.includes('B0CY5Q2C46')) {
+        return { ...d, productUrl: 'https://www.amazon.in/s?k=PlayStation+5+Slim&tag=khoshai-21' };
+      }
+      return d;
+    });
   });
 
   const [activeCategory, setActiveCategory] = useState('All Deals 🔥');
