@@ -56,7 +56,6 @@ export function getCanonicalUrl(rawUrl) {
   const trimmed = rawUrl.trim();
 
   // 1. Check for Amazon India / International ASIN patterns
-  // Pattern matches /dp/ASIN, /gp/product/ASIN, /gp/aw/d/ASIN, or asin=ASIN
   const amazonAsinMatch = trimmed.match(/(?:\/dp\/|\/gp\/product\/|\/gp\/aw\/d\/|asin=)([A-Z0-9]{10})/i);
 
   if (amazonAsinMatch && amazonAsinMatch[1]) {
@@ -77,7 +76,6 @@ export function getCanonicalUrl(rawUrl) {
 
     trackingKeys.forEach(key => urlObj.searchParams.delete(key));
 
-    // Remove empty trailing search string if clean
     return urlObj.origin + urlObj.pathname + (urlObj.searchParams.toString() ? `?${urlObj.searchParams.toString()}` : '');
   } catch (e) {
     return trimmed;
@@ -114,7 +112,6 @@ export async function scrapeProduct(url) {
 
     const $ = cheerio.load(response.data);
 
-    // Extract Title
     let title = $('#productTitle').text().trim() ||
                 $('meta[property="og:title"]').attr('content') ||
                 $('.product-title').text().trim() ||
@@ -123,7 +120,6 @@ export async function scrapeProduct(url) {
 
     title = title.replace(/\s+/g, ' ').trim();
 
-    // Extract Raw Price String
     let rawPriceStr = $('.a-price-whole').first().text().trim() ||
                       $('#priceblock_ourprice').text().trim() ||
                       $('#priceblock_dealprice').text().trim() ||
@@ -131,7 +127,6 @@ export async function scrapeProduct(url) {
                       $('meta[property="product:price:amount"]').attr('content') ||
                       '';
 
-    // Parse float numeric price from string (e.g. "₹4,999.00" => 4999.00)
     let current_price = null;
     if (rawPriceStr) {
       const cleanDigits = rawPriceStr.replace(/[^0-9.]/g, '');
@@ -140,7 +135,6 @@ export async function scrapeProduct(url) {
       }
     }
 
-    // Fallback price parser if whole price span contains decimals
     if (!current_price) {
       const priceTextMatch = $.text().match(/₹\s*([\d,]+(?:\.\d{2})?)/);
       if (priceTextMatch) {
@@ -148,7 +142,6 @@ export async function scrapeProduct(url) {
       }
     }
 
-    // Extract In-Stock Status
     const availabilityText = $('#availability').text().toLowerCase() ||
                              $('.in-stock-notification').text().toLowerCase() ||
                              $('meta[property="og:availability"]').attr('content') || '';
@@ -167,7 +160,6 @@ export async function scrapeProduct(url) {
     };
 
   } catch (error) {
-    // Structured error handling (CAPTCHA, 404, or network blocks)
     return {
       success: false,
       canonicalUrl,
@@ -182,9 +174,9 @@ export async function scrapeProduct(url) {
 // ----------------------------------------------------------------------------
 
 /**
- * Appends affiliate tags safely without double-wrapping or search redirects.
+ * Appends affiliate tags safely without dummy clnk.in placeholders.
  * 
- * @param {string} cleanUrl - Canonical product URL
+ * @param {string} cleanUrl - Canonical product URL or raw link
  * @param {string} tag - Amazon Associate Tag
  * @returns {string} Direct monetized affiliate link
  */
@@ -209,8 +201,7 @@ export function generateAffiliateLink(cleanUrl, tag = DEFAULT_AMAZON_TAG) {
       return urlObj.toString();
     }
 
-    // 3. Third-party Cuelinks / EarnKaro Aggregator Fallback Wrapper
-    return `https://clnk.in/xxxx?url=${encodeURIComponent(canonical)}`;
+    return canonical;
   } catch (e) {
     return canonical;
   }
@@ -248,7 +239,6 @@ app.post('/api/track-product', async (req, res) => {
     const canonicalUrl = getCanonicalUrl(url);
     const productId = Buffer.from(canonicalUrl).toString('base64').replace(/=/g, '');
 
-    // Scrape initial product data
     const scrapeResult = await scrapeProduct(canonicalUrl);
 
     if (!scrapeResult.success) {
@@ -259,7 +249,6 @@ app.post('/api/track-product', async (req, res) => {
       });
     }
 
-    // Save/Update product in memory
     const productRecord = {
       productId,
       canonicalUrl,
@@ -271,7 +260,6 @@ app.post('/api/track-product', async (req, res) => {
 
     productsStore.set(productId, productRecord);
 
-    // Save tracking rule if target_price & subscription provided
     if (target_price && subscription) {
       trackingRulesStore.push({
         id: `rule-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -302,7 +290,6 @@ app.post('/api/track-product', async (req, res) => {
 
 /**
  * GET /api/redirect/:product_id
- * Converts saved canonical URL into a clean affiliate link and performs HTTP 302 redirect
  */
 app.get('/api/redirect/:product_id', (req, res) => {
   const { product_id } = req.params;
@@ -318,7 +305,6 @@ app.get('/api/redirect/:product_id', (req, res) => {
 
 /**
  * POST /api/redirect
- * Body: { product_id } or { url }
  */
 app.post('/api/redirect', (req, res) => {
   const { product_id, url } = req.body;
@@ -340,11 +326,6 @@ app.post('/api/redirect', (req, res) => {
 // 5. Background Scheduler & Web Push Alert Engine (Cron Job)
 // -------------------------------------------------------------
 
-/**
- * Scheduled Batch Job running every 30 minutes (0, 30 * * * *)
- * Deduplicates URLs across all users, scrapes ONCE per batch, checks price drop rules,
- * and triggers VAPID Web Push Alerts with a 24-hour notification cooldown.
- */
 cron.schedule('*/30 * * * *', async () => {
   console.log('⏰ [Cron Batch Engine Started] Running 30-minute product price evaluation...');
 
@@ -353,16 +334,12 @@ cron.schedule('*/30 * * * *', async () => {
     return;
   }
 
-  // STEP 1: Deduplicate Product IDs to prevent redundant scrapes
   const uniqueProductIds = [...new Set(trackingRulesStore.map(rule => rule.productId))];
-  console.log(`🔍 Evaluating ${trackingRulesStore.length} rules across ${uniqueProductIds.length} unique products.`);
 
-  // STEP 2: Scrape each unique product ONCE per batch
   for (const productId of uniqueProductIds) {
     const productRecord = productsStore.get(productId);
     if (!productRecord) continue;
 
-    console.log(`🌐 Batch Scraping: ${productRecord.title.slice(0, 40)}... (${productRecord.canonicalUrl})`);
     const scrapeResult = await scrapeProduct(productRecord.canonicalUrl);
 
     if (scrapeResult.success) {
@@ -370,12 +347,9 @@ cron.schedule('*/30 * * * *', async () => {
       productRecord.is_in_stock = scrapeResult.is_in_stock;
       productRecord.lastScrapedAt = scrapeResult.scrapedAt;
       productsStore.set(productId, productRecord);
-    } else {
-      console.warn(`⚠️ Batch Scrape Warning for ${productId}:`, scrapeResult.error);
     }
   }
 
-  // STEP 3: Evaluate tracking rules & fire Web Push Notifications
   const NOW = Date.now();
   const COOLDOWN_24H = 24 * 60 * 60 * 1000;
 
@@ -387,8 +361,6 @@ cron.schedule('*/30 * * * *', async () => {
     const cooldownExpired = !rule.lastNotifiedAt || (NOW - rule.lastNotifiedAt >= COOLDOWN_24H);
 
     if (priceDropped && cooldownExpired && productRecord.is_in_stock) {
-      console.log(`🚨 [PRICE DROP ALERT TRIGGERED] ${productRecord.title} dropped to ₹${productRecord.current_price} (Target: ₹${rule.target_price})`);
-
       const payload = JSON.stringify({
         title: '⚡ Price Glitch Drop Alert!',
         body: `${productRecord.title.slice(0, 60)} is now ₹${productRecord.current_price}! Tap to grab deal.`,
@@ -401,7 +373,6 @@ cron.schedule('*/30 * * * *', async () => {
       try {
         await webpush.sendNotification(rule.subscription, payload);
         rule.lastNotifiedAt = NOW;
-        console.log(`✅ Web Push Notification delivered successfully to subscription.`);
       } catch (pushErr) {
         console.error(`❌ Web Push Notification Delivery Failed:`, pushErr.message);
       }
@@ -417,10 +388,5 @@ cron.schedule('*/30 * * * *', async () => {
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 StealDeal Backend Deal Engine running on http://localhost:${PORT}`);
-    console.log(`📡 Endpoints:`);
-    console.log(`   - POST /api/track-product`);
-    console.log(`   - GET  /api/redirect/:product_id`);
-    console.log(`   - POST /api/redirect`);
-    console.log(`⏰ Cron Scheduler active: Batch monitoring every 30 minutes.`);
   });
 }

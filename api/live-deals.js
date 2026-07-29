@@ -87,11 +87,27 @@ export default async function handler(req, res) {
           else if (lower.includes('tv') || lower.includes('convector') || lower.includes('appliance')) category = 'Electronics';
           else if (lower.includes('headphone') || lower.includes('audio')) category = 'Audio';
 
-          const rawLink = dealLinks[dealLinks.length - 1];
+          // Clean query for direct e-commerce landing page
+          const cleanQuery = title
+            .replace(/\d+%\s*off\s*(?:on)?\s*[-:]?\s*/gi, '')
+            .replace(/^(amazon|flipkart|croma|myntra|ajio|pepperfry)\s*[-:]?\s*/i, '')
+            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+            .trim()
+            .split(' ')
+            .filter(w => w.length > 2)
+            .slice(0, 3)
+            .join(' ');
 
-          // PROCESS URL THROUGH DEALENGINE.JS
-          const canonical = getCanonicalUrl(rawLink);
-          const monetizedUrl = generateAffiliateLink(canonical, amazonTag);
+          const rawLink = dealLinks[dealLinks.length - 1];
+          let targetProductUrl = '';
+
+          if (store === 'Amazon.in' || lower.includes('amazon')) {
+            targetProductUrl = generateAffiliateLink(`https://www.amazon.in/s?k=${encodeURIComponent(cleanQuery || 'deals')}`, amazonTag);
+          } else if (store === 'Flipkart') {
+            targetProductUrl = generateAffiliateLink(`https://www.flipkart.com/search?q=${encodeURIComponent(cleanQuery || 'deals')}`);
+          } else {
+            targetProductUrl = generateAffiliateLink(rawLink, amazonTag);
+          }
 
           liveTelegramDeals.push({
             id: `live-tg-${liveTelegramDeals.length + 1}`,
@@ -104,7 +120,7 @@ export default async function handler(req, res) {
             isPriceGlitch: discount >= 30,
             promoCode: discount > 40 ? 'STEALDEAL' : 'LOOT30',
             bankOffer: '10% Instant Discount on HDFC/SBI Credit Cards',
-            productUrl: monetizedUrl,
+            productUrl: targetProductUrl,
             imageUrl: getUniqueProductImage(title, category, imgIndex),
             description: `Verified Telegram Live Deal Drop! Direct ${store} checkout link processed by dealEngine.js.`,
             storeLogo: getStoreLogo(store),
