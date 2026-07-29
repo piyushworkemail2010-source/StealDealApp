@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/live-deals",
-      "schedule": "0 * * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }
