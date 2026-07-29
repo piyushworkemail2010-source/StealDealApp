@@ -69,13 +69,13 @@ export async function fetchLiveDeals() {
     console.warn('Live API feed unavailable, generating dynamic AI scan drop.');
   }
 
-  // Dynamic AI Fallback deal generator when offline or in dev preview
+  // Dynamic AI Fallback deal generator with real, direct product DP landing URLs
   const fallbackLiveItems = [
     {
       id: `live-scan-${Date.now()}-1`,
       title: 'Apple iPhone 15 128GB Black (Price Glitch Drop)',
-      store: 'Flipkart',
-      storeLogo: getStoreLogo('Flipkart'),
+      store: 'Amazon.in',
+      storeLogo: getStoreLogo('Amazon.in'),
       category: 'Electronics',
       originalPrice: 79900,
       glitchPrice: 42999,
@@ -87,7 +87,7 @@ export async function fetchLiveDeals() {
       upvotes: 620,
       expiredVotes: 0,
       imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80',
-      productUrl: generateAffiliateUrl('https://www.flipkart.com/search?q=iPhone+15', 'Flipkart'),
+      productUrl: generateAffiliateUrl('https://www.amazon.in/dp/B0CHX1W1XY', 'Amazon.in'),
       verifiedTime: 'Just now ⚡',
       description: 'NVIDIA AI verified flash drop! Stacked card instant cashback + seller coupon.'
     },
@@ -107,7 +107,7 @@ export async function fetchLiveDeals() {
       upvotes: 490,
       expiredVotes: 0,
       imageUrl: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80',
-      productUrl: generateAffiliateUrl('https://www.amazon.in/s?k=PlayStation+5+Slim', 'Amazon.in'),
+      productUrl: generateAffiliateUrl('https://www.amazon.in/dp/B0CY5N6G1P', 'Amazon.in'),
       verifiedTime: 'Just now ⚡',
       description: 'Price mistake listing drop. Historical lowest price ever recorded in India!'
     }

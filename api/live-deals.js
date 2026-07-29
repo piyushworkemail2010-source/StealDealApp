@@ -82,15 +82,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Fallback Live Stream with Valid Landing URLs
+    // Option C: Real Direct Product DP Landing URLs
     if (rawLiveProducts.length === 0) {
       rawLiveProducts = [
         {
           title: "Apple iPhone 15 128GB Black (Price Glitch Alert)",
-          store: "Flipkart",
+          store: "Amazon.in",
           rawPrice: 42999,
           mrp: 79900,
-          url: "https://www.flipkart.com/search?q=iPhone+15",
+          url: "https://www.amazon.in/dp/B0CHX1W1XY",
           image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80",
           category: "Electronics"
         },
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
           store: "Amazon.in",
           rawPrice: 31490,
           mrp: 44990,
-          url: "https://www.amazon.in/s?k=PlayStation+5+Slim",
+          url: "https://www.amazon.in/dp/B0CY5N6G1P",
           image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80",
           category: "Gaming"
         },
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
           store: "Myntra",
           rawPrice: 1599,
           mrp: 6999,
-          url: "https://www.myntra.com/puma-shoes",
+          url: "https://www.myntra.com/shoes/puma/softride",
           image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80",
           category: "Fashion"
         },
