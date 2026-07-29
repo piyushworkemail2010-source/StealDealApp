@@ -25,13 +25,12 @@ export default defineConfig({
     {
       name: 'vercel-api-local-dev-proxy',
       configureServer(server) {
+        // 1. /api/live-deals endpoint
         server.middlewares.use('/api/live-deals', async (req, res, next) => {
           try {
-            // Dynamically import the Vercel serverless function handler
             const liveDealsModule = await server.ssrLoadModule('/api/live-deals.js');
             const handler = liveDealsModule.default;
 
-            // Response helper wrappers for Vercel functions
             res.status = (code) => {
               res.statusCode = code;
               return res;
@@ -47,6 +46,58 @@ export default defineConfig({
             console.error('❌ Local /api/live-deals dev error:', err);
             res.statusCode = 500;
             res.end(JSON.stringify({ error: err.message }));
+          }
+        });
+
+        // 2. /api/track-product endpoint (powered by dealEngine.js)
+        server.middlewares.use('/api/track-product', async (req, res) => {
+          try {
+            const dealEngineModule = await server.ssrLoadModule('/dealEngine.js');
+            
+            // Read JSON body
+            let bodyData = '';
+            req.on('data', chunk => { bodyData += chunk; });
+            req.on('end', async () => {
+              try {
+                req.body = bodyData ? JSON.parse(bodyData) : {};
+              } catch (e) {
+                req.body = {};
+              }
+
+              const canonicalUrl = dealEngineModule.getCanonicalUrl(req.body.url || '');
+              const scrapeResult = await dealEngineModule.scrapeProduct(canonicalUrl);
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({
+                success: true,
+                canonicalUrl,
+                product: {
+                  title: scrapeResult.title || 'Product Item',
+                  current_price: scrapeResult.current_price || 4999.00,
+                  is_in_stock: scrapeResult.is_in_stock !== false,
+                  affiliateUrl: dealEngineModule.generateAffiliateLink(canonicalUrl)
+                }
+              }));
+            });
+          } catch (err) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          }
+        });
+
+        // 3. /api/redirect endpoint (powered by dealEngine.js)
+        server.middlewares.use('/api/redirect', async (req, res) => {
+          try {
+            const dealEngineModule = await server.ssrLoadModule('/dealEngine.js');
+            const targetUrl = req.query?.url || 'https://www.amazon.in/dp/B08N5WRWNW';
+            const affiliateUrl = dealEngineModule.generateAffiliateLink(targetUrl);
+
+            res.statusCode = 302;
+            res.setHeader('Location', affiliateUrl);
+            res.end();
+          } catch (err) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ success: false, error: err.message }));
           }
         });
       }
