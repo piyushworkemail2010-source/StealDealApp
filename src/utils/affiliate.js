@@ -21,20 +21,23 @@ export function formatINR(val) {
 
 /**
  * Converts any raw product URL into an EarnKaro monetized link or direct affiliate tag link
+ * Prevents recursive double-wrapping if the link is already monetized!
  * @param {string} rawUrl - Original product landing page URL
  * @param {string} store - Store name (e.g. Amazon.in, Flipkart, Myntra)
- * @returns {string} Monetized affiliate URL
+ * @returns {string} Single monetized affiliate URL
  */
 export function generateAffiliateUrl(rawUrl, store = '') {
   if (!rawUrl) return '#';
 
   const cleanUrl = rawUrl.trim();
 
-  // 1. EarnKaro Universal Link conversion wrapper
-  // EarnKaro link format: https://topend.earnkaro.com/share?url=ENCODED_PRODUCT_URL
-  const earnKaroWrapper = `https://topend.earnkaro.com/share?url=${encodeURIComponent(cleanUrl)}`;
+  // GUARD: If the URL is already an EarnKaro link, DO NOT double-wrap!
+  if (cleanUrl.includes('earnkaro.com/share') || cleanUrl.includes('topend.earnkaro.com')) {
+    console.log('✅ [Affiliate Link Guard] Link already contains EarnKaro wrapper:', cleanUrl);
+    return cleanUrl;
+  }
 
-  // 2. Direct tag fallbacks for major Indian retailers
+  // 1. Direct tag fallbacks for major Indian retailers
   try {
     const urlObj = new URL(cleanUrl);
     const domain = urlObj.hostname.toLowerCase();
@@ -48,19 +51,12 @@ export function generateAffiliateUrl(rawUrl, store = '') {
       urlObj.searchParams.set('affid', 'stealdeal');
       return urlObj.toString();
     }
-
-    if (domain.includes('myntra.')) {
-      return earnKaroWrapper;
-    }
-
-    if (domain.includes('ajio.')) {
-      return earnKaroWrapper;
-    }
   } catch (e) {
-    // If URL parsing fails, fallback to EarnKaro wrapper
+    // If URL parsing fails, continue to EarnKaro wrapper
   }
 
-  return earnKaroWrapper;
+  // 2. EarnKaro Universal Link conversion wrapper
+  return `https://topend.earnkaro.com/share?url=${encodeURIComponent(cleanUrl)}`;
 }
 
 /**
