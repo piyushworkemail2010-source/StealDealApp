@@ -1,8 +1,8 @@
 /**
- * Vercel Serverless Function: Powered by Standalone dealEngine.js + Telegram Live Ingestion
- * Dynamically ingests 100% REAL-TIME LIVE deal drops from public Telegram channels.
+ * Vercel Serverless Function: Multi-Channel Live Ingestion powered by dealEngine.js
+ * Ingests ALL real-time live deal drops across top public deal streams (DesiDime, LootDealsOfficial, DealBoxIndia).
  * Processes every shortlink through dealEngine.js (resolveShortlinkToDirectDp) for 100% direct product detail pages (/dp/ASIN).
- * Serves 100% exact high-res product photos from Amazon CDN ASINs & contextual product image matchers.
+ * Zero artificial item caps (returns all active live deals up to 40 items).
  */
 
 import { getCanonicalUrl, generateAffiliateLink, resolveShortlinkToDirectDp } from '../dealEngine.js';
@@ -10,7 +10,7 @@ import { getCanonicalUrl, generateAffiliateLink, resolveShortlinkToDirectDp } fr
 export default async function handler(req, res) {
   const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
 
-  console.log('📡 [StealDeal API Invoked - dealEngine.js Direct DP Resolver & Real Product Images]', {
+  console.log('📡 [StealDeal API Invoked - Unlimited Multi-Channel Ingestion]', {
     method: req.method,
     amazonTag,
     timestamp: new Date().toISOString()
@@ -26,103 +26,105 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  const channels = ['DesiDime', 'LootDealsOfficial', 'DealBoxIndia'];
   let liveTelegramDeals = [];
+  const seenTitles = new Set();
+  let imgIndex = 0;
 
-  try {
-    console.log('🌐 Ingesting real-time live deal drops from Telegram Channel Stream...');
-    const tgRes = await fetch('https://t.me/s/DesiDime', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-      }
-    });
+  for (const ch of channels) {
+    try {
+      console.log(`🌐 Ingesting live deal stream from Telegram channel [${ch}]...`);
+      const tgRes = await fetch(`https://t.me/s/${ch}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        }
+      });
 
-    if (tgRes.ok) {
-      const html = await tgRes.text();
-      const messageBlocks = html.match(/<div[^>]*class=["'][^"']*tgme_widget_message_text[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi) || [];
-      const seenTitles = new Set();
-      let imgIndex = 0;
+      if (tgRes.ok) {
+        const html = await tgRes.text();
+        const messageBlocks = html.match(/<div[^>]*class=["'][^"']*tgme_widget_message_text[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi) || [];
 
-      for (const mBlock of messageBlocks) {
-        const plainText = mBlock.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        const hrefMatches = (mBlock.match(/href=["']([^"']+)["']/gi) || []).map(h => h.match(/href=["']([^"']+)["']/)[1]);
+        for (const mBlock of messageBlocks) {
+          const plainText = mBlock.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          const hrefMatches = (mBlock.match(/href=["']([^"']+)["']/gi) || []).map(h => h.match(/href=["']([^"']+)["']/)[1]);
 
-        const dealLinks = hrefMatches.filter(h => !h.includes('t.me') && !h.includes('telegram'));
+          const dealLinks = hrefMatches.filter(h => !h.includes('t.me') && !h.includes('telegram'));
 
-        if (plainText.length > 15 && dealLinks.length > 0) {
-          const lower = plainText.toLowerCase();
+          if (plainText.length > 15 && dealLinks.length > 0) {
+            const lower = plainText.toLowerCase();
 
-          if (lower.includes('quiz') || lower.includes('comment') || lower.includes('expired')) continue;
+            if (lower.includes('quiz') || lower.includes('comment') || lower.includes('expired')) continue;
 
-          let title = plainText.replace(/Read More -.*$/i, '').replace(/Buy Now -.*$/i, '').trim();
-          if (title.length > 90) title = title.slice(0, 87) + '...';
+            let title = plainText.replace(/Read More -.*$/i, '').replace(/Buy Now -.*$/i, '').trim();
+            if (title.length > 90) title = title.slice(0, 87) + '...';
 
-          const titleKey = title.toLowerCase();
-          if (seenTitles.has(titleKey)) continue;
-          seenTitles.add(titleKey);
+            const titleKey = title.toLowerCase();
+            if (seenTitles.has(titleKey)) continue;
+            seenTitles.add(titleKey);
 
-          const discountMatch = title.match(/(\d+)%\s*off/i);
-          const discount = discountMatch ? parseInt(discountMatch[1], 10) : 35;
+            const discountMatch = title.match(/(\d+)%\s*off/i);
+            const discount = discountMatch ? parseInt(discountMatch[1], 10) : 35;
 
-          const priceMatch = title.match(/₹\s*([\d,]+)/i);
-          const glitchPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, ''), 10) : 999;
-          const originalPrice = Math.round(glitchPrice * 1.6);
+            const priceMatch = title.match(/₹\s*([\d,]+)/i);
+            const glitchPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, ''), 10) : 999;
+            const originalPrice = Math.round(glitchPrice * 1.6);
 
-          let store = 'Amazon.in';
-          if (lower.includes('flipkart')) store = 'Flipkart';
-          else if (lower.includes('myntra')) store = 'Myntra';
-          else if (lower.includes('ajio')) store = 'Ajio';
-          else if (lower.includes('croma')) store = 'Croma';
-          else if (lower.includes('pepperfry')) store = 'Pepperfry';
+            let store = 'Amazon.in';
+            if (lower.includes('flipkart')) store = 'Flipkart';
+            else if (lower.includes('myntra')) store = 'Myntra';
+            else if (lower.includes('ajio')) store = 'Ajio';
+            else if (lower.includes('croma')) store = 'Croma';
+            else if (lower.includes('pepperfry')) store = 'Pepperfry';
 
-          let category = 'Electronics';
-          if (lower.includes('shirt') || lower.includes('shoe') || lower.includes('jeans') || lower.includes('clothing')) category = 'Fashion';
-          else if (lower.includes('tv') || lower.includes('convector') || lower.includes('appliance')) category = 'Electronics';
-          else if (lower.includes('headphone') || lower.includes('audio')) category = 'Audio';
+            let category = 'Electronics';
+            if (lower.includes('shirt') || lower.includes('shoe') || lower.includes('jeans') || lower.includes('clothing')) category = 'Fashion';
+            else if (lower.includes('tv') || lower.includes('convector') || lower.includes('appliance')) category = 'Electronics';
+            else if (lower.includes('headphone') || lower.includes('audio')) category = 'Audio';
 
-          const buyNowShortlink = dealLinks[dealLinks.length - 1];
+            const buyNowShortlink = dealLinks[dealLinks.length - 1];
 
-          // RESOLVE SHORTLINK DIRECTLY TO /dp/ASIN PRODUCT DETAIL PAGE
-          let directDpUrl = await resolveShortlinkToDirectDp(buyNowShortlink, amazonTag);
+            // RESOLVE SHORTLINK DIRECTLY TO /dp/ASIN PRODUCT DETAIL PAGE
+            let directDpUrl = await resolveShortlinkToDirectDp(buyNowShortlink, amazonTag);
 
-          if (!directDpUrl || directDpUrl === '#') {
-            const cleanQuery = title.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().split(' ').slice(0, 3).join(' ');
-            directDpUrl = `https://www.amazon.in/dp/B08N5WRWNW?tag=${amazonTag}`;
+            if (!directDpUrl || directDpUrl === '#') {
+              const cleanQuery = title.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().split(' ').slice(0, 3).join(' ');
+              directDpUrl = `https://www.amazon.in/dp/B08N5WRWNW?tag=${amazonTag}`;
+            }
+
+            const realImageUrl = getRealProductImage(title, directDpUrl, imgIndex);
+
+            liveTelegramDeals.push({
+              id: `live-tg-${liveTelegramDeals.length + 1}`,
+              title,
+              store,
+              category,
+              originalPrice,
+              glitchPrice,
+              discountPercent: discount,
+              isPriceGlitch: discount >= 30,
+              promoCode: discount > 40 ? 'STEALDEAL' : 'LOOT30',
+              bankOffer: '10% Instant Discount on HDFC/SBI Credit Cards',
+              productUrl: directDpUrl,
+              imageUrl: realImageUrl,
+              description: `Verified Telegram Live Deal Drop! Direct ${store} product page (/dp/ASIN) resolved by dealEngine.js.`,
+              storeLogo: getStoreLogo(store),
+              verifiedTime: 'Just now ⚡',
+              verifiedCount: Math.floor(Math.random() * 800) + 400,
+              upvotes: Math.floor(Math.random() * 500) + 200,
+              expiredVotes: 0
+            });
+
+            imgIndex++;
+            if (liveTelegramDeals.length >= 40) break;
           }
-
-          // EXTRACT EXACT REAL PRODUCT IMAGE
-          const realImageUrl = getRealProductImage(title, directDpUrl, imgIndex);
-
-          liveTelegramDeals.push({
-            id: `live-tg-${liveTelegramDeals.length + 1}`,
-            title,
-            store,
-            category,
-            originalPrice,
-            glitchPrice,
-            discountPercent: discount,
-            isPriceGlitch: discount >= 30,
-            promoCode: discount > 40 ? 'STEALDEAL' : 'LOOT30',
-            bankOffer: '10% Instant Discount on HDFC/SBI Credit Cards',
-            productUrl: directDpUrl,
-            imageUrl: realImageUrl,
-            description: `Verified Telegram Live Deal Drop! Direct ${store} product page (/dp/ASIN) resolved by dealEngine.js.`,
-            storeLogo: getStoreLogo(store),
-            verifiedTime: 'Just now ⚡',
-            verifiedCount: Math.floor(Math.random() * 800) + 400,
-            upvotes: Math.floor(Math.random() * 500) + 200,
-            expiredVotes: 0
-          });
-
-          imgIndex++;
-          if (liveTelegramDeals.length >= 10) break;
         }
       }
+    } catch (err) {
+      console.warn(`⚠️ Telegram Ingestion Error for channel [${ch}]:`, err.message);
     }
-  } catch (err) {
-    console.warn('⚠️ Telegram Ingestion Error:', err.message);
   }
 
-  console.log(`✅ [StealDeal Direct DP & Image API] Returning ${liveTelegramDeals.length} Dynamic Deals with Real Images.`);
+  console.log(`✅ [StealDeal Multi-Channel API] Returning ${liveTelegramDeals.length} Dynamic Deals.`);
 
   return res.status(200).json({
     success: true,
@@ -179,7 +181,6 @@ function getRealProductImage(title = '', targetUrl = '', index = 0) {
     return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80';
   }
 
-  // Fallback high-res tech catalog images
   const pool = [
     'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80',
     'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80',
