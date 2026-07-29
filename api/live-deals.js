@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
   try {
     // -------------------------------------------------------------
-    // STEP 1: Fetch Real Live Products from Platform APIs or Live Feeds
+    // STEP 1: Fetch Real Live Products strictly from Platform APIs or Live Feeds
     // -------------------------------------------------------------
 
     // Option A: Flipkart Official Affiliate API (if credentials provided)
@@ -93,33 +93,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Verified Active Amazon India Product Prices
+    // Zero static deals allowed!
     if (rawLiveProducts.length === 0) {
-      console.log('⚡ Using verified active Amazon India product catalog with live prices');
-      rawLiveProducts = [
-        {
-          id: "live-feed-sony-xm5-headphones",
-          title: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
-          store: "Amazon.in",
-          rawPrice: 29990,
-          mrp: 34990,
-          url: "https://www.amazon.in/dp/B09XS7JWHH",
-          image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
-          category: "Audio",
-          bankOffer: "Upto ₹1,500 Instant Discount on select Credit Cards"
-        },
-        {
-          id: "live-feed-iphone-13-blue",
-          title: "Apple iPhone 13 (128GB) - Blue",
-          store: "Amazon.in",
-          rawPrice: 48999,
-          mrp: 59900,
-          url: "https://www.amazon.in/dp/B09G9HD6PD",
-          image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80",
-          category: "Electronics",
-          bankOffer: "₹3,000 Instant Discount on SBI Cards"
-        }
-      ];
+      console.log('ℹ️ No live products returned from active feeds right now.');
+      return res.status(200).json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        count: 0,
+        deals: []
+      });
     }
 
     // -------------------------------------------------------------
@@ -195,9 +177,8 @@ export default async function handler(req, res) {
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal, idx) => {
       const storeName = deal.store || (deal.productUrl?.includes('amazon') ? 'Amazon.in' : 'Flipkart');
-      let rawUrl = deal.productUrl || 'https://www.amazon.in/dp/B09G9HD6PD';
+      let rawUrl = deal.productUrl || 'https://www.amazon.in';
       
-      // Wrap through EarnKaro universal link generator
       let finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
 
       try {

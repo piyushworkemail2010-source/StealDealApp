@@ -7,37 +7,16 @@ import StealBotDrawer from './components/StealBotDrawer';
 import BottomNav from './components/BottomNav';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import { INITIAL_DEALS } from './data/dealsData';
-import { sanitizeInput } from './utils/security';
 import { fetchLiveDeals } from './services/aiService';
-import { Tag, Sparkles } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 
 export default function App() {
-  const [deals, setDeals] = useState(() => {
-    const saved = localStorage.getItem('stealdeal_deals');
-    let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
-    
-    // Purge out-of-stock and legacy cached items
-    const seenTitles = new Set();
-    const cleanDeals = [];
+  // Purge any static deals from localStorage and start with 0 static deals
+  useEffect(() => {
+    localStorage.removeItem('stealdeal_deals');
+  }, []);
 
-    for (const d of loaded) {
-      if (d.id && d.id.startsWith('deal-')) continue;
-      if (d.productUrl && (d.productUrl.includes('B0CHX1W1XY') || d.productUrl.includes('B09N3Z3Y8C') || d.productUrl.includes('B0CY5Q2C46'))) {
-        console.log('🧹 [App Cache Purge] Dropping legacy cached card:', d.title);
-        continue; // Purge outdated ASIN card
-      }
-
-      const titleSlug = d.title ? d.title.toLowerCase().trim() : '';
-      if (!titleSlug || seenTitles.has(titleSlug)) continue;
-
-      seenTitles.add(titleSlug);
-      cleanDeals.push(d);
-    }
-
-    console.log('🏁 [App Initialized Deals State]', cleanDeals);
-    return cleanDeals;
-  });
-
+  const [deals, setDeals] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All Deals 🔥');
   const [searchQuery, setSearchQuery] = useState('');
   const [wishlist, setWishlist] = useState(() => {
@@ -73,16 +52,12 @@ export default function App() {
     handleSyncLiveDeals();
   }, []);
 
-  // Save deals and wishlist to localStorage
-  useEffect(() => {
-    localStorage.setItem('stealdeal_deals', JSON.stringify(deals));
-  }, [deals]);
-
+  // Save wishlist to localStorage
   useEffect(() => {
     localStorage.setItem('stealdeal_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  // Live Deal Sync Handler (Deduplicated by title and id)
+  // Live Deal Sync Handler
   const handleSyncLiveDeals = async () => {
     setIsSyncing(true);
     try {
@@ -91,19 +66,13 @@ export default function App() {
       console.log('✨ [App Live Deals Received]', liveDeals);
 
       if (liveDeals && liveDeals.length > 0) {
-        setDeals(prev => {
-          const existingTitles = new Set(prev.map(d => d.title.toLowerCase().trim()));
-          const existingIds = new Set(prev.map(d => d.id));
-          const newItems = liveDeals.filter(d => {
-            const titleKey = d.title ? d.title.toLowerCase().trim() : '';
-            return !existingIds.has(d.id) && !existingTitles.has(titleKey);
-          });
-          console.log(`➕ [App Prepending ${newItems.length} New Live Deals]`, newItems);
-          return [...newItems, ...prev];
-        });
+        setDeals(liveDeals);
+      } else {
+        setDeals([]);
       }
     } catch (e) {
       console.warn('Failed to sync live deals', e);
+      setDeals([]);
     } finally {
       setIsSyncing(false);
     }
@@ -223,16 +192,26 @@ export default function App() {
           )}
         </div>
 
-        {/* Empty State */}
+        {/* Empty State when zero deals are present */}
         {filteredDeals.length === 0 && (
           <div className="glass-panel" style={{ textAlign: 'center', padding: '60px 20px', borderRadius: 'var(--radius-lg)' }}>
             <Sparkles size={48} color="var(--accent-amber)" style={{ margin: '0 auto 12px auto' }} />
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#FFF' }}>No deals found for this filter</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Try searching for "headphones", "laptops", or switch back to "All Deals 🔥".
+            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#FFF' }}>
+              {isSyncing ? 'Scanning Live Indian E-Commerce Feeds...' : 'No Static Deals Loaded (Clean State)'}
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '6px', maxWidth: '440px', margin: '6px auto 0 auto' }}>
+              {isSyncing
+                ? 'StealBot AI is connecting to live e-commerce streams to fetch real-time price drops.'
+                : 'All static & hardcoded deals have been completely removed. Click "Sync Live Deals" to pull real live feed items.'}
             </p>
-            <button onClick={() => { setSearchQuery(''); setActiveCategory('All Deals 🔥'); setIsWishlistOnlyView(false); }} className="btn-primary" style={{ marginTop: '16px' }}>
-              Reset Filters
+            <button
+              onClick={handleSyncLiveDeals}
+              className="btn-primary"
+              disabled={isSyncing}
+              style={{ marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+            >
+              <RefreshCw size={16} className={isSyncing ? 'spin-animation' : ''} />
+              <span>{isSyncing ? 'SYNCING LIVE FEEDS...' : 'SYNC LIVE DEALS'}</span>
             </button>
           </div>
         )}
