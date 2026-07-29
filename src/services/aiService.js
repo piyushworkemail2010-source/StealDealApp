@@ -49,8 +49,7 @@ export async function askStealBot(userPrompt, dealCatalog = []) {
 }
 
 /**
- * Fetch fresh live deals strictly from Vercel Serverless AI feed (/api/live-deals)
- * Zero hardcoded or static fallback deals!
+ * Fetch fresh live deals from /api/live-deals endpoint
  * @returns {Promise<Array>} Array of verified dynamic deal objects from live feed
  */
 export async function fetchLiveDeals() {
@@ -74,7 +73,6 @@ export async function fetchLiveDeals() {
     console.warn('⚠️ Live API feed error:', error.message);
   }
 
-  // Zero static deals loaded! Returns empty array if live feed is unavailable.
   return [];
 }
 
