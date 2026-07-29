@@ -3,7 +3,7 @@
  * Enterprise-grade XSS Sanitization & Open-Redirect Protection
  */
 
-// Whitelist of allowed Indian e-commerce domains for affiliate redirects
+// Whitelist of allowed Indian e-commerce & affiliate domains
 const ALLOWED_STORE_DOMAINS = [
   'amazon.in',
   'www.amazon.in',
@@ -15,6 +15,8 @@ const ALLOWED_STORE_DOMAINS = [
   'www.myntra.com',
   'ajio.com',
   'www.ajio.com',
+  'earnkaro.com',
+  'topend.earnkaro.com',
   'boat-lifestyle.com',
   'www.boat-lifestyle.com',
   'croma.com',
@@ -66,13 +68,21 @@ export function isSafeStoreUrl(url) {
  * @param {string} targetUrl Destination URL
  */
 export function safeRedirect(targetUrl) {
-  if (!targetUrl) return;
+  if (!targetUrl) {
+    console.error('❌ [StealDeal Redirect Error] Target URL is empty!');
+    return;
+  }
+
+  console.log('🚀 [StealDeal Redirecting User]', {
+    destination: targetUrl,
+    isWhitelisted: isSafeStoreUrl(targetUrl),
+    timestamp: new Date().toISOString()
+  });
 
   if (isSafeStoreUrl(targetUrl)) {
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   } else {
-    console.warn('Security Alert: Target URL domain is not in the trusted affiliate whitelist.', targetUrl);
-    // Open anyway with noopener/noreferrer for valid HTTPS links
+    console.warn('⚠️ [StealDeal Security Warning] Target domain not in whitelist, redirecting via secure window.open:', targetUrl);
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   }
 }

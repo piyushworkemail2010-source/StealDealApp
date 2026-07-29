@@ -16,26 +16,25 @@ export default function App() {
     const saved = localStorage.getItem('stealdeal_deals');
     let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
     
-    // Purge hardcoded static deals ('deal-1' through 'deal-6') and duplicates
+    // Purge old cached deal items containing outdated test ASINs
     const seenTitles = new Set();
     const cleanDeals = [];
 
     for (const d of loaded) {
-      if (d.id && d.id.startsWith('deal-')) continue; // Drop old static deals
+      if (d.id && d.id.startsWith('deal-')) continue;
+      if (d.productUrl && (d.productUrl.includes('B0CX58C56K') || d.productUrl.includes('B0CY5N6G1P') || d.productUrl.includes('B0CY5Q2C46'))) {
+        console.log('🧹 [App Cache Purge] Dropping stale deal card:', d.title, d.productUrl);
+        continue; // Purge outdated ASIN cards
+      }
 
       const titleSlug = d.title ? d.title.toLowerCase().trim() : '';
       if (!titleSlug || seenTitles.has(titleSlug)) continue;
 
       seenTitles.add(titleSlug);
-
-      let fixedUrl = d.productUrl;
-      if (fixedUrl && (fixedUrl.includes('B0CY5N6G1P') || fixedUrl.includes('B0CY5Q2C46'))) {
-        fixedUrl = 'https://www.amazon.in/dp/B0CX58C56K?tag=khoshai-21';
-      }
-
-      cleanDeals.push({ ...d, productUrl: fixedUrl });
+      cleanDeals.push(d);
     }
 
+    console.log('🏁 [App Initialized Deals State]', cleanDeals);
     return cleanDeals;
   });
 
@@ -87,7 +86,10 @@ export default function App() {
   const handleSyncLiveDeals = async () => {
     setIsSyncing(true);
     try {
+      console.log('🔄 [App Syncing Live Deals...]');
       const liveDeals = await fetchLiveDeals();
+      console.log('✨ [App Live Deals Received]', liveDeals);
+
       if (liveDeals && liveDeals.length > 0) {
         setDeals(prev => {
           const existingTitles = new Set(prev.map(d => d.title.toLowerCase().trim()));
@@ -96,6 +98,7 @@ export default function App() {
             const titleKey = d.title ? d.title.toLowerCase().trim() : '';
             return !existingIds.has(d.id) && !existingTitles.has(titleKey);
           });
+          console.log(`➕ [App Prepending ${newItems.length} New Live Deals]`, newItems);
           return [...newItems, ...prev];
         });
       }
@@ -244,7 +247,10 @@ export default function App() {
             <DealCard
               key={deal.id}
               deal={deal}
-              onOpenDealModal={(d) => setSelectedDealModal(d)}
+              onOpenDealModal={(d) => {
+                console.log('📌 [User Clicked Deal Modal]', d);
+                setSelectedDealModal(d);
+              }}
               onToggleWishlist={handleToggleWishlist}
               isWishlisted={wishlist.includes(deal.id)}
               onUpvote={handleUpvote}

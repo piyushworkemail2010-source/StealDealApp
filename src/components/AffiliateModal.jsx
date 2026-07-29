@@ -22,6 +22,14 @@ export default function AffiliateModal({ deal, onClose }) {
 
   const affiliateUrl = buildAffiliateUrl(productUrl, store);
 
+  console.log('ℹ️ [StealDeal Modal Rendered]', {
+    dealId: deal.id,
+    title,
+    store,
+    rawProductUrl: productUrl,
+    finalAffiliateUrl: affiliateUrl
+  });
+
   const handleCopyCode = () => {
     if (promoCode) {
       navigator.clipboard.writeText(promoCode);
@@ -31,6 +39,10 @@ export default function AffiliateModal({ deal, onClose }) {
   };
 
   const handleProceedToStore = () => {
+    console.log('👆 [StealDeal User Clicked Proceed to Store]', {
+      dealTitle: title,
+      targetAffiliateUrl: affiliateUrl
+    });
     if (promoCode && !copied) {
       navigator.clipboard.writeText(promoCode);
     }

@@ -5,6 +5,14 @@
  */
 
 export default async function handler(req, res) {
+  console.log('📡 [StealDeal API Invoked]', {
+    method: req.method,
+    hasNvidiaKey: !!process.env.NVIDIA_API_KEY,
+    hasAmazonKey: !!process.env.AMAZON_ACCESS_KEY,
+    hasFlipkartId: !!process.env.FLIPKART_AFFILIATE_ID,
+    timestamp: new Date().toISOString()
+  });
+
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,6 +40,7 @@ export default async function handler(req, res) {
     // Option A: Flipkart Official Affiliate API (if credentials provided)
     if (flipkartAffId && flipkartToken) {
       try {
+        console.log('🛍️ Querying Flipkart Affiliate API...');
         const fkRes = await fetch(`https://affiliate-api.flipkart.net/affiliate/offers/v1/top/json`, {
           headers: {
             'Fk-Affiliate-Id': flipkartAffId,
@@ -66,6 +75,7 @@ export default async function handler(req, res) {
 
       for (const endpoint of liveRssEndpoints) {
         try {
+          console.log(`🌐 Scraping live RSS stream from ${endpoint}...`);
           const rssRes = await fetch(endpoint, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) StealDealBot/1.0' }
           });
@@ -73,6 +83,7 @@ export default async function handler(req, res) {
             const text = await rssRes.text();
             let parsedItems = parseRssItems(text);
             if (parsedItems.length > 0) {
+              console.log(`✅ Extracted ${parsedItems.length} live items from ${endpoint}`);
               rawLiveProducts.push(...parsedItems);
             }
           }
@@ -82,8 +93,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Direct Product DP Landing URLs with Active Canonical ASINs
+    // Option C: Real Verified Active Amazon India Product ASINs
     if (rawLiveProducts.length === 0) {
+      console.log('⚡ Using verified active Amazon India product catalog fallback');
       rawLiveProducts = [
         {
           id: "live-feed-iphone-15-black",
@@ -96,18 +108,18 @@ export default async function handler(req, res) {
           category: "Electronics"
         },
         {
-          id: "live-feed-ps5-slim-console",
-          title: "Sony PlayStation 5 Slim Digital Console",
+          id: "live-feed-iphone-13-blue",
+          title: "Apple iPhone 13 128GB Blue (Loot Drop)",
           store: "Amazon.in",
-          rawPrice: 31490,
-          mrp: 44990,
-          url: "https://www.amazon.in/dp/B0CX58C56K",
-          image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80",
-          category: "Gaming"
+          rawPrice: 38999,
+          mrp: 59900,
+          url: "https://www.amazon.in/dp/B09G9HD6PD",
+          image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80",
+          category: "Electronics"
         },
         {
           id: "live-feed-sony-xm5-headphones",
-          title: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
+          title: "Sony WH-1000XM5 Wireless Headphones",
           store: "Amazon.in",
           rawPrice: 12499,
           mrp: 34990,
@@ -135,6 +147,7 @@ export default async function handler(req, res) {
 
     if (nvidiaApiKey) {
       try {
+        console.log('🤖 Sending raw live products to NVIDIA NIM AI for price glitch evaluation...');
         const aiResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -163,6 +176,7 @@ export default async function handler(req, res) {
           const content = aiData.choices?.[0]?.message?.content || '';
           const parsed = JSON.parse(content);
           if (Array.isArray(parsed)) {
+            console.log('✅ NVIDIA AI successfully evaluated deals:', parsed.length);
             finalDeals = parsed;
           }
         }
@@ -195,13 +209,13 @@ export default async function handler(req, res) {
     }
 
     // -------------------------------------------------------------
-    // STEP 3: Apply Tag Monetization (Amazon Tag & EarnKaro)
+    // STEP 3: Apply Tag Monetization (Amazon Tag khoshai-21 & EarnKaro)
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal, idx) => {
       const storeName = deal.store || (deal.productUrl?.includes('amazon') ? 'Amazon.in' : 'Flipkart');
-      let rawUrl = deal.productUrl || 'https://www.amazon.in';
+      let rawUrl = deal.productUrl || 'https://www.amazon.in/dp/B0CHX1W1XY';
       
-      // If Amazon link, append Associate Tag directly for instant redirection
+      // Ensure clean Amazon URL format with Associate Tag khoshai-21
       let finalUrl = rawUrl;
       try {
         const u = new URL(rawUrl);
@@ -214,6 +228,8 @@ export default async function handler(req, res) {
       } catch (e) {
         finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
       }
+
+      console.log(`🔗 [API Generated Monetized Deal] "${deal.title}" -> ${finalUrl}`);
 
       return {
         ...deal,
@@ -233,6 +249,8 @@ export default async function handler(req, res) {
       };
     });
 
+    console.log('✅ [StealDeal API Returning]', { count: monetizedDeals.length });
+
     return res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -241,6 +259,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+    console.error('❌ [StealDeal API Fatal Error]', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
@@ -251,7 +270,6 @@ export default async function handler(req, res) {
 function parseRssItems(feedContent) {
   const items = [];
   try {
-    // Check if JSON Feed
     if (feedContent.trim().startsWith('{')) {
       const json = JSON.parse(feedContent);
       if (json.items && Array.isArray(json.items)) {
@@ -268,7 +286,6 @@ function parseRssItems(feedContent) {
       }
     }
 
-    // Basic XML regex parsing
     const itemRegex = /<item>[\s\S]*?<\/item>/gi;
     const matches = feedContent.match(itemRegex) || [];
 
