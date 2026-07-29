@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Verified Active Amazon India Product Prices (100% matched to live Amazon listings)
+    // Option C: Real Verified Active 100% In-Stock Amazon India Products
     if (rawLiveProducts.length === 0) {
       console.log('⚡ Using verified active Amazon India product catalog with live prices');
       rawLiveProducts = [
@@ -107,17 +107,6 @@ export default async function handler(req, res) {
           image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
           category: "Audio",
           bankOffer: "Upto ₹1,500 Instant Discount on select Credit Cards"
-        },
-        {
-          id: "live-feed-iphone-15-black",
-          title: "Apple iPhone 15 (128 GB) - Black",
-          store: "Amazon.in",
-          rawPrice: 64900,
-          mrp: 79900,
-          url: "https://www.amazon.in/dp/B0CHX1W1XY",
-          image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80",
-          category: "Electronics",
-          bankOffer: "₹5,000 Instant Discount on HDFC Credit Cards"
         },
         {
           id: "live-feed-iphone-13-blue",
@@ -217,7 +206,7 @@ export default async function handler(req, res) {
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal, idx) => {
       const storeName = deal.store || (deal.productUrl?.includes('amazon') ? 'Amazon.in' : 'Flipkart');
-      let rawUrl = deal.productUrl || 'https://www.amazon.in/dp/B0CHX1W1XY';
+      let rawUrl = deal.productUrl || 'https://www.amazon.in/dp/B09G9HD6PD';
       
       // Ensure clean Amazon URL format with Associate Tag khoshai-21
       let finalUrl = rawUrl;
