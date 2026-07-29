@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   const nvidiaApiKey = process.env.NVIDIA_API_KEY;
   const amazonAccessKey = process.env.AMAZON_ACCESS_KEY;
   const amazonSecretKey = process.env.AMAZON_SECRET_KEY;
-  const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || 'stealdealin-21';
+  const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
   const flipkartAffId = process.env.FLIPKART_AFFILIATE_ID;
   const flipkartToken = process.env.FLIPKART_AFFILIATE_TOKEN;
 
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     // Option B: Real-Time Live E-Commerce RSS & Public Deal Stream Scraper
     if (rawLiveProducts.length < 4) {
       const liveRssEndpoints = [
-        'https://rss.app/feeds/v1.1/amazon-deals.json', // Live Amazon Deal Stream
+        'https://rss.app/feeds/v1.1/amazon-deals.json',
         'https://www.desidime.com/rss'
       ];
 
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Fallback Live Stream if RSS endpoints are temporarily throttled
+    // Option C: Real Fallback Live Stream with Valid Landing URLs
     if (rawLiveProducts.length === 0) {
       rawLiveProducts = [
         {
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
           store: "Flipkart",
           rawPrice: 42999,
           mrp: 79900,
-          url: "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4",
+          url: "https://www.flipkart.com/search?q=iPhone+15",
           image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&auto=format&fit=crop&q=80",
           category: "Electronics"
         },
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
           store: "Amazon.in",
           rawPrice: 31490,
           mrp: 44990,
-          url: "https://www.amazon.in/dp/B0CY5Q2C46",
+          url: "https://www.amazon.in/s?k=PlayStation+5+Slim",
           image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80",
           category: "Gaming"
         },
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
           store: "Myntra",
           rawPrice: 1599,
           mrp: 6999,
-          url: "https://www.myntra.com/shoes/puma/softride",
+          url: "https://www.myntra.com/puma-shoes",
           image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80",
           category: "Fashion"
         },
@@ -191,14 +191,25 @@ export default async function handler(req, res) {
     }
 
     // -------------------------------------------------------------
-    // STEP 3: Apply EarnKaro & Retailer Affiliate Link Monetization
+    // STEP 3: Apply Tag Monetization (Amazon Tag & EarnKaro)
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal, idx) => {
       const storeName = deal.store || (deal.productUrl?.includes('amazon') ? 'Amazon.in' : 'Flipkart');
-      const rawUrl = deal.productUrl || 'https://www.amazon.in';
+      let rawUrl = deal.productUrl || 'https://www.amazon.in';
       
-      // EarnKaro link format: https://topend.earnkaro.com/share?url=ENCODED_URL
-      const earnKaroUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+      // If Amazon link, append Associate Tag directly for instant redirection
+      let finalUrl = rawUrl;
+      try {
+        const u = new URL(rawUrl);
+        if (u.hostname.includes('amazon.')) {
+          u.searchParams.set('tag', amazonTag);
+          finalUrl = u.toString();
+        } else {
+          finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+        }
+      } catch (e) {
+        finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+      }
 
       return {
         ...deal,
@@ -209,7 +220,7 @@ export default async function handler(req, res) {
           : storeName.toLowerCase().includes('flipkart')
           ? 'https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg'
           : 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png',
-        productUrl: earnKaroUrl,
+        productUrl: finalUrl,
         imageUrl: deal.imageUrl || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
         verifiedTime: 'Just now ⚡',
         verifiedCount: deal.verifiedCount || (Math.floor(Math.random() * 800) + 200),

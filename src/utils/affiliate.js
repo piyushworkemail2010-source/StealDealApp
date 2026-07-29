@@ -3,8 +3,9 @@
  * Monetizes product links across top Indian platforms (Amazon, Flipkart, Myntra, Ajio, etc.)
  */
 
-// Default EarnKaro referral/partner tag prefix (user can override via VITE_EARNKARO_REF_CODE)
-const EARNKARO_REF_CODE = import.meta.env?.VITE_EARNKARO_REF_CODE || 'stealdeal2026';
+// User's EarnKaro partner referral code & Amazon tag from environment variables
+const EARNKARO_REF_CODE = import.meta.env?.VITE_EARNKARO_REF_CODE || '5490007';
+const AMAZON_TAG = import.meta.env?.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
 
 /**
  * Format Indian Rupees (INR) currency
@@ -39,7 +40,7 @@ export function generateAffiliateUrl(rawUrl, store = '') {
     const domain = urlObj.hostname.toLowerCase();
 
     if (domain.includes('amazon.')) {
-      urlObj.searchParams.set('tag', 'stealdealin-21');
+      urlObj.searchParams.set('tag', AMAZON_TAG);
       return urlObj.toString();
     }
 
