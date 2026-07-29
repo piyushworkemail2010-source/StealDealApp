@@ -82,10 +82,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Direct Product DP Landing URLs
+    // Option C: Real Direct Product DP Landing URLs with Stable Identifiers
     if (rawLiveProducts.length === 0) {
       rawLiveProducts = [
         {
+          id: "live-feed-iphone-15-black",
           title: "Apple iPhone 15 128GB Black (Price Glitch Alert)",
           store: "Amazon.in",
           rawPrice: 42999,
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
           category: "Electronics"
         },
         {
+          id: "live-feed-ps5-slim-console",
           title: "Sony PlayStation 5 Slim Digital Console",
           store: "Amazon.in",
           rawPrice: 31490,
@@ -104,6 +106,7 @@ export default async function handler(req, res) {
           category: "Gaming"
         },
         {
+          id: "live-feed-puma-enzo-sneakers",
           title: "Puma Softride Enzo NXT Sneakers",
           store: "Myntra",
           rawPrice: 1599,
@@ -113,6 +116,7 @@ export default async function handler(req, res) {
           category: "Fashion"
         },
         {
+          id: "live-feed-boat-airdopes-141",
           title: "boAt Airdopes 141 Bluetooth TWS Earbuds",
           store: "Amazon.in",
           rawPrice: 699,
@@ -173,7 +177,7 @@ export default async function handler(req, res) {
         const mrp = item.mrp || item.rawPrice * 2;
         const discount = Math.round(((mrp - item.rawPrice) / mrp) * 100);
         return {
-          id: `live-feed-${Date.now()}-${idx}`,
+          id: item.id || `live-feed-${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
           title: item.title,
           store: item.store || (item.url?.includes('amazon') ? 'Amazon.in' : 'Flipkart'),
           category: item.category || 'Electronics',
@@ -213,7 +217,7 @@ export default async function handler(req, res) {
 
       return {
         ...deal,
-        id: deal.id || `live-deal-${Date.now()}-${idx}`,
+        id: deal.id || `live-deal-${deal.title?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
         store: storeName,
         storeLogo: storeName.toLowerCase().includes('amazon')
           ? 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg'
@@ -252,6 +256,7 @@ function parseRssItems(feedContent) {
       const json = JSON.parse(feedContent);
       if (json.items && Array.isArray(json.items)) {
         return json.items.slice(0, 6).map(i => ({
+          id: `live-rss-${i.title?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
           title: i.title,
           store: i.title?.toLowerCase().includes('flipkart') ? 'Flipkart' : 'Amazon.in',
           url: i.url || i.id,
@@ -279,6 +284,7 @@ function parseRssItems(feedContent) {
 
         const price = extractPriceFromText(desc) || extractPriceFromText(title) || 1999;
         items.push({
+          id: `live-xml-${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
           title,
           store: url.includes('flipkart') ? 'Flipkart' : 'Amazon.in',
           url,

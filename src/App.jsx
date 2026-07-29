@@ -15,13 +15,26 @@ export default function App() {
   const [deals, setDeals] = useState(() => {
     const saved = localStorage.getItem('stealdeal_deals');
     let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
-    // Sanitize any legacy cached deals with outdated product links
-    return loaded.map(d => {
-      if (d.productUrl && d.productUrl.includes('B0CY5Q2C46')) {
-        return { ...d, productUrl: 'https://www.amazon.in/s?k=PlayStation+5+Slim&tag=khoshai-21' };
+    
+    // Purge duplicates and legacy broken URLs from state
+    const seenTitles = new Set();
+    const cleanDeals = [];
+
+    for (const d of loaded) {
+      const titleSlug = d.title ? d.title.toLowerCase().trim() : '';
+      if (!titleSlug || seenTitles.has(titleSlug)) continue;
+
+      seenTitles.add(titleSlug);
+
+      // Clean outdated sample URLs
+      let fixedUrl = d.productUrl;
+      if (fixedUrl && fixedUrl.includes('B0CY5Q2C46')) {
+        fixedUrl = 'https://www.amazon.in/dp/B0CY5N6G1P?tag=khoshai-21';
       }
-      return d;
-    });
+      cleanDeals.push({ ...d, productUrl: fixedUrl });
+    }
+
+    return cleanDeals.length > 0 ? cleanDeals : INITIAL_DEALS;
   });
 
   const [activeCategory, setActiveCategory] = useState('All Deals 🔥');
@@ -68,15 +81,19 @@ export default function App() {
     localStorage.setItem('stealdeal_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  // Live Deal Sync Handler
+  // Live Deal Sync Handler (Deduplicated by title and id)
   const handleSyncLiveDeals = async () => {
     setIsSyncing(true);
     try {
       const liveDeals = await fetchLiveDeals();
       if (liveDeals && liveDeals.length > 0) {
         setDeals(prev => {
+          const existingTitles = new Set(prev.map(d => d.title.toLowerCase().trim()));
           const existingIds = new Set(prev.map(d => d.id));
-          const newItems = liveDeals.filter(d => !existingIds.has(d.id));
+          const newItems = liveDeals.filter(d => {
+            const titleKey = d.title ? d.title.toLowerCase().trim() : '';
+            return !existingIds.has(d.id) && !existingTitles.has(titleKey);
+          });
           return [...newItems, ...prev];
         });
       }

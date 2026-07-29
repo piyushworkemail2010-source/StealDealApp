@@ -69,10 +69,10 @@ export async function fetchLiveDeals() {
     console.warn('Live API feed unavailable, generating dynamic AI scan drop.');
   }
 
-  // Dynamic AI Fallback deal generator with real, direct product DP landing URLs
+  // Dynamic AI Fallback deal generator with stable IDs to prevent duplication
   const fallbackLiveItems = [
     {
-      id: `live-scan-${Date.now()}-1`,
+      id: 'live-scan-iphone-15-black',
       title: 'Apple iPhone 15 128GB Black (Price Glitch Drop)',
       store: 'Amazon.in',
       storeLogo: getStoreLogo('Amazon.in'),
@@ -92,7 +92,7 @@ export async function fetchLiveDeals() {
       description: 'NVIDIA AI verified flash drop! Stacked card instant cashback + seller coupon.'
     },
     {
-      id: `live-scan-${Date.now()}-2`,
+      id: 'live-scan-ps5-slim-console',
       title: 'Sony PlayStation 5 Slim Digital Console',
       store: 'Amazon.in',
       storeLogo: getStoreLogo('Amazon.in'),
