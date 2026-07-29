@@ -2,7 +2,7 @@
  * ============================================================================
  * StealDeal Standalone Deal Engine (dealEngine.js)
  * High-performance Node.js Data Ingestion, Price Scraping, Canonical ASIN Extractor,
- * Affiliate Link Generator, Express API & Cron Web Push Alert System.
+ * Shortlink ASIN Resolver, Affiliate Link Generator, Express API & Cron Web Push Alert System.
  * ============================================================================
  */
 
@@ -67,7 +67,6 @@ export function getCanonicalUrl(rawUrl) {
   try {
     const urlObj = new URL(trimmed);
 
-    // List of tracking query parameter keys to strip
     const trackingKeys = [
       'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
       'ref', 'ref_', 'pf_rd_r', 'pf_rd_p', 'pd_rd_w', 'pd_rd_r', 'qid', 'sr',
@@ -82,16 +81,43 @@ export function getCanonicalUrl(rawUrl) {
   }
 }
 
+/**
+ * Resolves shortlinks (e.g. ddime.in/xxx) to direct merchant product detail pages (/dp/ASIN)
+ */
+export async function resolveShortlinkToDirectDp(shortUrl, tag = DEFAULT_AMAZON_TAG) {
+  if (!shortUrl) return '';
+
+  try {
+    const res1 = await fetch(shortUrl, { method: 'HEAD', redirect: 'manual' });
+    const loc1 = res1.headers.get('location');
+    if (!loc1) return getCanonicalUrl(shortUrl);
+
+    const res2 = await fetch(loc1, { method: 'HEAD', redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const loc2 = res2.headers.get('location') || loc1;
+
+    const urlParamMatch = loc2.match(/url=([^&]+)/);
+    let targetUrl = loc2;
+    if (urlParamMatch) {
+      targetUrl = decodeURIComponent(urlParamMatch[1]);
+    }
+
+    const asinMatch = targetUrl.match(/(?:\/dp\/|\/gp\/product\/)([A-Z0-9]{10})/i);
+    if (asinMatch) {
+      return `https://www.amazon.in/dp/${asinMatch[1].toUpperCase()}?tag=${tag}`;
+    }
+
+    return generateAffiliateLink(targetUrl, tag);
+  } catch (e) {
+    return generateAffiliateLink(shortUrl, tag);
+  }
+}
+
 // ----------------------------------------------------------------------------
 // 2. Live Scraper Service (scrapeProduct)
 // ----------------------------------------------------------------------------
 
 /**
  * Fetches HTML using Axios with browser headers and parses DOM using Cheerio.
- * Evaluates title, numeric price, and stock status cleanly.
- * 
- * @param {string} url - Canonical product URL
- * @returns {Promise<Object>} Scraped product data or structured error object
  */
 export async function scrapeProduct(url) {
   const canonicalUrl = getCanonicalUrl(url);
@@ -174,11 +200,7 @@ export async function scrapeProduct(url) {
 // ----------------------------------------------------------------------------
 
 /**
- * Appends affiliate tags safely without dummy clnk.in placeholders.
- * 
- * @param {string} cleanUrl - Canonical product URL or raw link
- * @param {string} tag - Amazon Associate Tag
- * @returns {string} Direct monetized affiliate link
+ * Appends affiliate tags safely without search query redirects.
  */
 export function generateAffiliateLink(cleanUrl, tag = DEFAULT_AMAZON_TAG) {
   if (!cleanUrl) return '#';
@@ -225,8 +247,6 @@ app.use((req, res, next) => {
 
 /**
  * POST /api/track-product
- * Accepts { url, target_price, subscription }
- * Sanitizes URL, scrapes initial data, creates product & tracking rule
  */
 app.post('/api/track-product', async (req, res) => {
   const { url, target_price, subscription } = req.body;

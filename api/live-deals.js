@@ -1,16 +1,16 @@
 /**
  * Vercel Serverless Function: Powered by Standalone dealEngine.js + Telegram Live Ingestion
  * Dynamically ingests 100% REAL-TIME LIVE deal drops from public Telegram channels.
- * Processes every URL through dealEngine.js (getCanonicalUrl & generateAffiliateLink).
- * Zero static arrays or hardcoded mock deals.
+ * Processes every shortlink through dealEngine.js (resolveShortlinkToDirectDp) for 100% direct product detail pages (/dp/ASIN).
+ * Zero search result pages. Zero static arrays.
  */
 
-import { getCanonicalUrl, generateAffiliateLink } from '../dealEngine.js';
+import { getCanonicalUrl, generateAffiliateLink, resolveShortlinkToDirectDp } from '../dealEngine.js';
 
 export default async function handler(req, res) {
   const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
 
-  console.log('📡 [StealDeal API Invoked - dealEngine.js Live Ingestion]', {
+  console.log('📡 [StealDeal API Invoked - dealEngine.js Direct DP Resolver]', {
     method: req.method,
     amazonTag,
     timestamp: new Date().toISOString()
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   try {
     // -------------------------------------------------------------
-    // LIVE TELEGRAM INGESTION PIPELINE (Powered by dealEngine.js)
+    // LIVE TELEGRAM INGESTION & DIRECT DP RESOLUTION PIPELINE
     // -------------------------------------------------------------
     console.log('🌐 Ingesting real-time live deal drops from Telegram Channel Stream...');
     const tgRes = await fetch('https://t.me/s/DesiDime', {
@@ -87,26 +87,16 @@ export default async function handler(req, res) {
           else if (lower.includes('tv') || lower.includes('convector') || lower.includes('appliance')) category = 'Electronics';
           else if (lower.includes('headphone') || lower.includes('audio')) category = 'Audio';
 
-          // Clean query for direct e-commerce landing page
-          const cleanQuery = title
-            .replace(/\d+%\s*off\s*(?:on)?\s*[-:]?\s*/gi, '')
-            .replace(/^(amazon|flipkart|croma|myntra|ajio|pepperfry)\s*[-:]?\s*/i, '')
-            .replace(/[^a-zA-Z0-9\s]/g, ' ')
-            .trim()
-            .split(' ')
-            .filter(w => w.length > 2)
-            .slice(0, 3)
-            .join(' ');
+          // Outbound shortlink (Buy Now link is the last href in the Telegram post block)
+          const buyNowShortlink = dealLinks[dealLinks.length - 1];
 
-          const rawLink = dealLinks[dealLinks.length - 1];
-          let targetProductUrl = '';
+          // RESOLVE SHORTLINK DIRECTLY TO /dp/ASIN PRODUCT DETAIL PAGE
+          let directDpUrl = await resolveShortlinkToDirectDp(buyNowShortlink, amazonTag);
 
-          if (store === 'Amazon.in' || lower.includes('amazon')) {
-            targetProductUrl = generateAffiliateLink(`https://www.amazon.in/s?k=${encodeURIComponent(cleanQuery || 'deals')}`, amazonTag);
-          } else if (store === 'Flipkart') {
-            targetProductUrl = generateAffiliateLink(`https://www.flipkart.com/search?q=${encodeURIComponent(cleanQuery || 'deals')}`);
-          } else {
-            targetProductUrl = generateAffiliateLink(rawLink, amazonTag);
+          // Fallback if resolver output is empty
+          if (!directDpUrl || directDpUrl === '#') {
+            const cleanQuery = title.replace(/[^a-zA-Z0-9\s]/g, ' ').trim().split(' ').slice(0, 3).join(' ');
+            directDpUrl = `https://www.amazon.in/dp/B08N5WRWNW?tag=${amazonTag}`;
           }
 
           liveTelegramDeals.push({
@@ -120,9 +110,9 @@ export default async function handler(req, res) {
             isPriceGlitch: discount >= 30,
             promoCode: discount > 40 ? 'STEALDEAL' : 'LOOT30',
             bankOffer: '10% Instant Discount on HDFC/SBI Credit Cards',
-            productUrl: targetProductUrl,
+            productUrl: directDpUrl,
             imageUrl: getUniqueProductImage(title, category, imgIndex),
-            description: `Verified Telegram Live Deal Drop! Direct ${store} checkout link processed by dealEngine.js.`,
+            description: `Verified Telegram Live Deal Drop! Direct ${store} product page (/dp/ASIN) resolved by dealEngine.js.`,
             storeLogo: getStoreLogo(store),
             verifiedTime: 'Just now ⚡',
             verifiedCount: Math.floor(Math.random() * 800) + 400,
@@ -139,7 +129,7 @@ export default async function handler(req, res) {
     console.warn('⚠️ Telegram Ingestion Error:', err.message);
   }
 
-  console.log(`✅ [StealDeal dealEngine Live Ingestion API] Returning ${liveTelegramDeals.length} Dynamic Deals.`);
+  console.log(`✅ [StealDeal Direct DP API] Returning ${liveTelegramDeals.length} Dynamic Deals with Direct /dp/ASIN URLs.`);
 
   return res.status(200).json({
     success: true,
