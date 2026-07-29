@@ -1,13 +1,13 @@
 /**
- * Vercel Serverless Function: Option 4 Hybrid Telegram + Direct Store Ingestion Engine
- * Ingests live deal drops from Telegram channels, resolves final merchant product pages (/dp/ASIN),
- * applies Amazon tag monetization (khoshai-21), and falls back to verified direct product pages.
+ * Vercel Serverless Function: Option 4 Dynamic Telegram Live Deal Ingestion Engine
+ * Ingests 100% REAL-TIME LIVE deal drops from public Telegram channels.
+ * Zero static arrays or hardcoded mock deals.
  */
 
 export default async function handler(req, res) {
   const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
 
-  console.log('📡 [StealDeal Hybrid Telegram API Invoked]', {
+  console.log('📡 [StealDeal API Invoked - 100% Dynamic Live Feed]', {
     method: req.method,
     amazonTag,
     timestamp: new Date().toISOString()
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     // -------------------------------------------------------------
     // STEP 1: Ingest Live Deals from Telegram Channel Stream
     // -------------------------------------------------------------
-    console.log('🌐 Ingesting live deals from Telegram Channel Stream...');
+    console.log('🌐 Ingesting real-time live deals from Telegram Channel Stream...');
     const tgRes = await fetch('https://t.me/s/DesiDime', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
           });
 
           imgIndex++;
-          if (liveTelegramDeals.length >= 8) break;
+          if (liveTelegramDeals.length >= 10) break;
         }
       }
     }
@@ -137,82 +137,13 @@ export default async function handler(req, res) {
     console.warn('⚠️ Telegram Ingestion Warning:', err.message);
   }
 
-  // -------------------------------------------------------------
-  // STEP 2: Guaranteed Active Amazon Direct Product Detail Pages (DP URLs)
-  // -------------------------------------------------------------
-  const fallbackDirectDeals = [
-    {
-      id: "dp-macbook-air-m1",
-      title: "Apple MacBook Air Laptop M1 chip (13.3-inch, 8GB RAM, 256GB SSD) - Space Grey",
-      store: "Amazon.in",
-      storeLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-      originalPrice: 99900,
-      glitchPrice: 69990,
-      discountPercent: 30,
-      isPriceGlitch: true,
-      promoCode: "LOOT30",
-      bankOffer: "₹5,000 Instant Discount on HDFC Credit Cards",
-      productUrl: `https://www.amazon.in/dp/B08N5WRWNW?tag=${amazonTag}`,
-      imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80",
-      category: "Electronics",
-      description: "Direct Amazon Product Page! Apple M1 chip with 8-core CPU and 7-core GPU.",
-      verifiedTime: "Just now ⚡",
-      verifiedCount: 1420,
-      upvotes: 890,
-      expiredVotes: 0
-    },
-    {
-      id: "dp-iphone-13-blue",
-      title: "Apple iPhone 13 (128GB) - Blue",
-      store: "Amazon.in",
-      storeLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-      originalPrice: 59900,
-      glitchPrice: 48999,
-      discountPercent: 18,
-      isPriceGlitch: true,
-      promoCode: "IPHONE18",
-      bankOffer: "Flat ₹2,500 Bank Cashback on SBI Cards",
-      productUrl: `https://www.amazon.in/dp/B09G9HD6PD?tag=${amazonTag}`,
-      imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80",
-      category: "Electronics",
-      description: "Direct Amazon Product Page! Advanced dual-camera system with 12MP Wide and Ultra Wide.",
-      verifiedTime: "Just now ⚡",
-      verifiedCount: 980,
-      upvotes: 620,
-      expiredVotes: 0
-    },
-    {
-      id: "dp-sony-xm5",
-      title: "Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones",
-      store: "Amazon.in",
-      storeLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-      originalPrice: 34990,
-      glitchPrice: 24990,
-      discountPercent: 29,
-      isPriceGlitch: true,
-      promoCode: "SONY29",
-      bankOffer: "₹3,000 Instant Discount on ICICI Bank Cards",
-      productUrl: `https://www.amazon.in/dp/B09XS7JWHH?tag=${amazonTag}`,
-      imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
-      category: "Audio",
-      description: "Direct Amazon Product Page! Auto NC Optimizer automatically optimizes noise canceling.",
-      verifiedTime: "Just now ⚡",
-      verifiedCount: 750,
-      upvotes: 430,
-      expiredVotes: 0
-    }
-  ];
-
-  // Combine Telegram live deals + Fallback direct product pages
-  const allDeals = [...liveTelegramDeals, ...fallbackDirectDeals];
-
-  console.log(`✅ [StealDeal Hybrid Engine] Returning ${allDeals.length} Live Deals.`);
+  console.log(`✅ [StealDeal Pure Dynamic Engine] Returning ${liveTelegramDeals.length} Live Telegram Deals.`);
 
   return res.status(200).json({
     success: true,
     timestamp: new Date().toISOString(),
-    count: allDeals.length,
-    deals: allDeals
+    count: liveTelegramDeals.length,
+    deals: liveTelegramDeals
   });
 }
 
