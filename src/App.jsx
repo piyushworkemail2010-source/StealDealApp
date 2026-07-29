@@ -8,6 +8,7 @@ import BottomNav from './components/BottomNav';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import { INITIAL_DEALS } from './data/dealsData';
 import { sanitizeInput } from './utils/security';
+import { fetchLiveDeals } from './services/aiService';
 import { Tag, Sparkles } from 'lucide-react';
 
 export default function App() {
@@ -27,6 +28,9 @@ export default function App() {
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [isWishlistOnlyView, setIsWishlistOnlyView] = useState(false);
 
+  // Live Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // PWA Install Prompt state
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPwaPrompt, setShowPwaPrompt] = useState(false);
@@ -43,6 +47,11 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  // Sync live AI deals on initial load
+  useEffect(() => {
+    handleSyncLiveDeals();
+  }, []);
+
   // Save deals and wishlist to localStorage
   useEffect(() => {
     localStorage.setItem('stealdeal_deals', JSON.stringify(deals));
@@ -51,6 +60,25 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('stealdeal_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
+
+  // Live Deal Sync Handler
+  const handleSyncLiveDeals = async () => {
+    setIsSyncing(true);
+    try {
+      const liveDeals = await fetchLiveDeals();
+      if (liveDeals && liveDeals.length > 0) {
+        setDeals(prev => {
+          const existingIds = new Set(prev.map(d => d.id));
+          const newItems = liveDeals.filter(d => !existingIds.has(d.id));
+          return [...newItems, ...prev];
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to sync live deals', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Install PWA Handler
   const handleInstallPwa = async () => {
@@ -145,6 +173,8 @@ export default function App() {
           <LootRadarHero
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
+            onSyncLiveDeals={handleSyncLiveDeals}
+            isSyncing={isSyncing}
           />
         )}
 

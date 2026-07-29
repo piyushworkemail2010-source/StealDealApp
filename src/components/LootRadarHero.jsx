@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, Clock, ShieldCheck, Tag, Sparkles } from 'lucide-react';
+import { Flame, Clock, ShieldCheck, Tag, Sparkles, RefreshCw, Zap } from 'lucide-react';
 import { CATEGORIES } from '../data/dealsData';
 
-export default function LootRadarHero({ activeCategory, setActiveCategory }) {
+export default function LootRadarHero({ activeCategory, setActiveCategory, onSyncLiveDeals, isSyncing }) {
   const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 45, seconds: 18 });
 
   // Live countdown timer
@@ -35,12 +35,12 @@ export default function LootRadarHero({ activeCategory, setActiveCategory }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
           
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <span className="badge-glitch">
                 <Flame size={14} /> LIVE LOOT RADAR
               </span>
               <span style={{ fontSize: '0.78rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <ShieldCheck size={14} /> 100% Spam-Free • Verified Glitches
+                <ShieldCheck size={14} /> 100% Verified Price Glitches
               </span>
             </div>
 
@@ -49,39 +49,71 @@ export default function LootRadarHero({ activeCategory, setActiveCategory }) {
             </h1>
             
             <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '6px', maxWidth: '580px' }}>
-              We track stacked coupon errors, historical price drops & bank instant discounts across Amazon, Flipkart, Myntra & top Indian stores.
+              NVIDIA AI scanning live feeds for stacked coupon errors & bank instant discounts across Amazon, Flipkart, Myntra & top Indian stores.
             </p>
           </div>
 
           {/* Countdown & Stats Box */}
           <div style={{
-            background: 'rgba(0, 0, 0, 0.4)',
-            border: '1px solid var(--border-glass)',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px 20px',
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: '12px',
+            flexWrap: 'wrap'
           }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <Clock size={12} color="var(--accent-amber)" /> Flash Window Ends In
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid var(--border-glass)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <Clock size={12} color="var(--accent-amber)" /> Flash Window Ends
+                </div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '2px' }}>
+                  {formatTime(timeLeft.hours)}:{formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+                </div>
               </div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)', marginTop: '2px' }}>
-                {formatTime(timeLeft.hours)}:{formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+
+              <div style={{ height: '32px', width: '1px', background: 'var(--border-glass)' }}></div>
+
+              <div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Total Savings Today
+                </div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '2px' }}>
+                  ₹4,82,500+
+                </div>
               </div>
             </div>
 
-            <div style={{ height: '32px', width: '1px', background: 'var(--border-glass)' }}></div>
-
-            <div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Total Savings Today
-              </div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-green)', marginTop: '2px' }}>
-                ₹4,82,500+
-              </div>
-            </div>
+            {/* Sync Live AI Deals Button */}
+            <button
+              onClick={onSyncLiveDeals}
+              disabled={isSyncing}
+              style={{
+                backgroundColor: 'rgba(0, 230, 118, 0.12)',
+                border: '1px solid rgba(0, 230, 118, 0.4)',
+                color: 'var(--accent-green)',
+                padding: '14px 18px',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 700,
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.9rem',
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+              title="Sync Live AI Deal Radar Feed"
+            >
+              <RefreshCw size={16} className={isSyncing ? 'spin-animation' : ''} />
+              {isSyncing ? 'AI Radar Scanning...' : 'Sync Live Deals ⚡'}
+            </button>
           </div>
 
         </div>
