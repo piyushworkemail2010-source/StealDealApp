@@ -69,8 +69,8 @@ export default async function handler(req, res) {
     // Option B: Real-Time Live E-Commerce RSS & Public Deal Stream Scraper
     if (rawLiveProducts.length < 4) {
       const liveRssEndpoints = [
-        'https://rss.app/feeds/v1.1/amazon-deals.json',
-        'https://www.desidime.com/rss'
+        'https://www.desidime.com/rss',
+        'https://rss.app/feeds/v1.1/amazon-deals.json'
       ];
 
       for (const endpoint of liveRssEndpoints) {
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Verified Active Amazon India Product Prices (100% fail-safe)
+    // Option C: Real Verified Active Amazon India Product Prices
     if (rawLiveProducts.length === 0) {
       console.log('⚡ Using verified active Amazon India product catalog with live prices');
       rawLiveProducts = [
@@ -118,17 +118,6 @@ export default async function handler(req, res) {
           image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80",
           category: "Electronics",
           bankOffer: "₹3,000 Instant Discount on SBI Cards"
-        },
-        {
-          id: "live-feed-boat-airdopes-141",
-          title: "boAt Airdopes 141 Bluetooth TWS Earbuds",
-          store: "Amazon.in",
-          rawPrice: 1299,
-          mrp: 4490,
-          url: "https://www.amazon.in/s?k=boAt+Airdopes+141",
-          image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80",
-          category: "Audio",
-          bankOffer: "Flat ₹100 Cashback on UPI Payment"
         }
       ];
     }
@@ -202,24 +191,23 @@ export default async function handler(req, res) {
     }
 
     // -------------------------------------------------------------
-    // STEP 3: Apply Tag Monetization (Amazon Tag khoshai-21 & EarnKaro)
+    // STEP 3: Apply EarnKaro & Tag Monetization
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal, idx) => {
       const storeName = deal.store || (deal.productUrl?.includes('amazon') ? 'Amazon.in' : 'Flipkart');
       let rawUrl = deal.productUrl || 'https://www.amazon.in/dp/B09G9HD6PD';
       
-      // Ensure clean Amazon URL format with Associate Tag khoshai-21
-      let finalUrl = rawUrl;
+      // Wrap through EarnKaro universal link generator
+      let finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+
       try {
         const u = new URL(rawUrl);
         if (u.hostname.includes('amazon.')) {
           u.searchParams.set('tag', amazonTag);
           finalUrl = u.toString();
-        } else {
-          finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
         }
       } catch (e) {
-        finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+        // Fallback to EarnKaro
       }
 
       console.log(`🔗 [API Generated Monetized Deal] "${deal.title}" Price: ₹${deal.glitchPrice} -> ${finalUrl}`);
