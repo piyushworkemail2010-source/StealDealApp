@@ -79,10 +79,15 @@ export default async function handler(req, res) {
           const discount = Math.round(((mrp - price) / mrp) * 100);
 
           // -------------------------------------------------------------
-          // DIRECT STORE LANDING URL RESOLUTION (Zero Google redirect notice pages!)
+          // CLEAN PRODUCT QUERY (Strips prefix store names like "Zepto - ", "Amazon - ")
           // -------------------------------------------------------------
+          let cleanProductQuery = title
+            .replace(/^(amazon|flipkart|zepto|myntra|ajio|croma|tatacliq|magicpin)\s*[-:]?\s*/i, '') // Remove store prefixes
+            .replace(/[^a-zA-Z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
           let directMerchantUrl = '';
-          const cleanProductQuery = title.replace(/[^a-zA-Z0-9\s]/g, '').trim();
 
           if (store === 'Amazon.in' || title.toLowerCase().includes('amazon')) {
             directMerchantUrl = `https://www.amazon.in/s?k=${encodeURIComponent(cleanProductQuery)}&tag=${amazonTag}`;
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`✅ Resolved ${liveScrapedItems.length} real live deal items with direct merchant store links.`);
+    console.log(`✅ Resolved ${liveScrapedItems.length} real live deal items with direct clean merchant store links.`);
 
     if (liveScrapedItems.length === 0) {
       return res.status(200).json({
