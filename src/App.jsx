@@ -22,12 +22,9 @@ export default function App() {
 
     for (const d of loaded) {
       if (d.id && d.id.startsWith('deal-')) continue;
-      if (d.productUrl && d.productUrl.includes('B0CHX1W1XY')) {
-        console.log('🧹 [App Cache Purge] Dropping out-of-stock iPhone 15 Black:', d.title);
-        continue; // Purge out-of-stock ASIN card
-      }
-      if (d.glitchPrice === 12499 || (d.productUrl && d.productUrl.includes('B0CY5Q2C46'))) {
-        continue;
+      if (d.productUrl && (d.productUrl.includes('B0CHX1W1XY') || d.productUrl.includes('B09N3Z3Y8C') || d.productUrl.includes('B0CY5Q2C46'))) {
+        console.log('🧹 [App Cache Purge] Dropping legacy cached card:', d.title);
+        continue; // Purge outdated ASIN card
       }
 
       const titleSlug = d.title ? d.title.toLowerCase().trim() : '';

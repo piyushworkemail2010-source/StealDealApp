@@ -74,7 +74,7 @@ export async function fetchLiveDeals() {
     console.warn('⚠️ Live API feed unavailable, falling back to local deal generator:', error.message);
   }
 
-  // Dynamic AI Fallback deal generator with 100% IN-STOCK Amazon India products
+  // Dynamic AI Fallback deal generator with 100% fail-safe Amazon India URLs
   const fallbackLiveItems = [
     {
       id: 'live-scan-sony-xm5-headphones',
@@ -132,7 +132,7 @@ export async function fetchLiveDeals() {
       upvotes: 950,
       expiredVotes: 0,
       imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80',
-      productUrl: generateAffiliateUrl('https://www.amazon.in/dp/B09N3Z3Y8C', 'Amazon.in'),
+      productUrl: generateAffiliateUrl('https://www.amazon.in/s?k=boAt+Airdopes+141', 'Amazon.in'),
       verifiedTime: 'Just now ⚡',
       description: '100% In-Stock on Amazon India! 42H playtime lightning deal.'
     }
