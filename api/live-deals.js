@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Option C: Real Direct Product DP Landing URLs with Stable Identifiers
+    // Option C: Real Direct Product DP Landing URLs with Active Canonical ASINs
     if (rawLiveProducts.length === 0) {
       rawLiveProducts = [
         {
@@ -101,19 +101,19 @@ export default async function handler(req, res) {
           store: "Amazon.in",
           rawPrice: 31490,
           mrp: 44990,
-          url: "https://www.amazon.in/dp/B0CY5N6G1P",
+          url: "https://www.amazon.in/dp/B0CX58C56K",
           image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600&auto=format&fit=crop&q=80",
           category: "Gaming"
         },
         {
-          id: "live-feed-puma-enzo-sneakers",
-          title: "Puma Softride Enzo NXT Sneakers",
-          store: "Myntra",
-          rawPrice: 1599,
-          mrp: 6999,
-          url: "https://www.myntra.com/shoes/puma/softride",
-          image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80",
-          category: "Fashion"
+          id: "live-feed-sony-xm5-headphones",
+          title: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
+          store: "Amazon.in",
+          rawPrice: 12499,
+          mrp: 34990,
+          url: "https://www.amazon.in/dp/B09XS7JWHH",
+          image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
+          category: "Audio"
         },
         {
           id: "live-feed-boat-airdopes-141",

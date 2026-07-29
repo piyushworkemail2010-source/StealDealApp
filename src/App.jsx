@@ -27,7 +27,13 @@ export default function App() {
       if (!titleSlug || seenTitles.has(titleSlug)) continue;
 
       seenTitles.add(titleSlug);
-      cleanDeals.push(d);
+
+      let fixedUrl = d.productUrl;
+      if (fixedUrl && (fixedUrl.includes('B0CY5N6G1P') || fixedUrl.includes('B0CY5Q2C46'))) {
+        fixedUrl = 'https://www.amazon.in/dp/B0CX58C56K?tag=khoshai-21';
+      }
+
+      cleanDeals.push({ ...d, productUrl: fixedUrl });
     }
 
     return cleanDeals;
