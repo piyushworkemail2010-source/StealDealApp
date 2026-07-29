@@ -1,6 +1,6 @@
 /**
  * StealDeal Affiliate & E-Commerce Link Transformer
- * Monetizes product links across top Indian platforms (Amazon, Flipkart, Myntra, Ajio, etc.)
+ * Monetizes product links across top Indian platforms (Amazon, Flipkart, Myntra, Ajio, Zepto, etc.)
  */
 
 const AMAZON_TAG = import.meta.env?.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
@@ -20,16 +20,25 @@ export function formatINR(val) {
 
 /**
  * Converts any raw product URL into a clean monetized link with verified Amazon Associate Tag
+ * Strips Google Redirect Notice URLs automatically!
  * @param {string} rawUrl - Original product landing page URL
  * @param {string} store - Store name
- * @returns {string} Monetized URL
+ * @returns {string} Clean direct merchant URL
  */
 export function generateAffiliateUrl(rawUrl, store = '') {
   if (!rawUrl) return '#';
 
-  const cleanUrl = rawUrl.trim();
+  let cleanUrl = rawUrl.trim();
 
-  // If already contains Amazon associate tag or clean URL, return clean URL
+  // GUARD: Strip Google Redirect Notice wrapper if present
+  if (cleanUrl.includes('google.com/url?q=')) {
+    const match = cleanUrl.match(/q=([^&]+)/);
+    if (match && match[1]) {
+      cleanUrl = decodeURIComponent(match[1]);
+    }
+  }
+
+  // Tag monetization for Amazon and Flipkart
   try {
     const urlObj = new URL(cleanUrl);
     const domain = urlObj.hostname.toLowerCase();
@@ -67,5 +76,6 @@ export function getStoreLogo(storeName = '') {
   if (s.includes('myntra')) return 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Myntra_logo.png';
   if (s.includes('ajio')) return 'https://upload.wikimedia.org/wikipedia/commons/1/1b/Ajio_logo.png';
   if (s.includes('nykaa')) return 'https://upload.wikimedia.org/wikipedia/commons/0/00/Nykaa_logo.svg';
+  if (s.includes('zepto')) return 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg';
   return 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=100&auto=format&fit=crop&q=80';
 }

@@ -1,11 +1,11 @@
 /**
  * Vercel Serverless Function: Real-Time Live E-Commerce Deals & AI Price Glitch Radar
  * Scrapes REAL LIVE real-time deal streams directly from live Indian e-commerce feeds,
- * resolves DIRECT STORE PRODUCT PAGES (Amazon/Flipkart/Zepto), and applies Amazon tag monetization (khoshai-21).
+ * resolves DIRECT STORE PRODUCT PAGES (Amazon/Flipkart/Zepto/Croma), and applies Amazon tag monetization (khoshai-21).
  */
 
 export default async function handler(req, res) {
-  console.log('📡 [StealDeal API Invoked - Direct Merchant Live Feed Scraper]', {
+  console.log('📡 [StealDeal API Invoked - Direct Store Scraper]', {
     method: req.method,
     amazonTag: process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21',
     timestamp: new Date().toISOString()
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
           const discount = Math.round(((mrp - price) / mrp) * 100);
 
           // -------------------------------------------------------------
-          // DIRECT MERCHANT STORE URL RESOLUTION (Bypasses forum pages!)
+          // DIRECT STORE LANDING URL RESOLUTION (Zero Google redirect notice pages!)
           // -------------------------------------------------------------
           let directMerchantUrl = '';
           const cleanProductQuery = title.replace(/[^a-zA-Z0-9\s]/g, '').trim();
@@ -88,13 +88,16 @@ export default async function handler(req, res) {
             directMerchantUrl = `https://www.amazon.in/s?k=${encodeURIComponent(cleanProductQuery)}&tag=${amazonTag}`;
           } else if (store === 'Flipkart' || title.toLowerCase().includes('flipkart')) {
             directMerchantUrl = `https://www.flipkart.com/search?q=${encodeURIComponent(cleanProductQuery)}&affid=stealdeal`;
+          } else if (store === 'Zepto' || title.toLowerCase().includes('zepto')) {
+            directMerchantUrl = `https://www.zepto.com/search?query=${encodeURIComponent(cleanProductQuery)}`;
           } else if (store === 'Myntra') {
             directMerchantUrl = `https://www.myntra.com/${encodeURIComponent(cleanProductQuery.replace(/\s+/g, '-'))}`;
           } else if (store === 'Ajio') {
             directMerchantUrl = `https://www.ajio.com/search/?text=${encodeURIComponent(cleanProductQuery)}`;
+          } else if (store === 'Croma') {
+            directMerchantUrl = `https://www.croma.com/searchB?q=${encodeURIComponent(cleanProductQuery)}`;
           } else {
-            // Direct store query
-            directMerchantUrl = `https://www.google.com/search?q=${encodeURIComponent(cleanProductQuery + ' ' + store + ' buy online')}&btnI=1`;
+            directMerchantUrl = `https://www.amazon.in/s?k=${encodeURIComponent(cleanProductQuery)}&tag=${amazonTag}`;
           }
 
           liveScrapedItems.push({
