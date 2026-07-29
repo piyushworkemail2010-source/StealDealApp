@@ -16,15 +16,15 @@ export default function App() {
     const saved = localStorage.getItem('stealdeal_deals');
     let loaded = saved ? JSON.parse(saved) : INITIAL_DEALS;
     
-    // Purge old cached deal items containing outdated test ASINs
+    // Purge outdated cached items
     const seenTitles = new Set();
     const cleanDeals = [];
 
     for (const d of loaded) {
       if (d.id && d.id.startsWith('deal-')) continue;
-      if (d.productUrl && (d.productUrl.includes('B0CX58C56K') || d.productUrl.includes('B0CY5N6G1P') || d.productUrl.includes('B0CY5Q2C46'))) {
-        console.log('🧹 [App Cache Purge] Dropping stale deal card:', d.title, d.productUrl);
-        continue; // Purge outdated ASIN cards
+      if (d.glitchPrice === 12499 || (d.productUrl && d.productUrl.includes('B0CY5Q2C46'))) {
+        console.log('🧹 [App Cache Purge] Purging legacy price card:', d.title);
+        continue; // Purge outdated cached cards
       }
 
       const titleSlug = d.title ? d.title.toLowerCase().trim() : '';
