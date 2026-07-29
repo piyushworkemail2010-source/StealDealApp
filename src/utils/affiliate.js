@@ -1,11 +1,10 @@
 /**
- * StealDeal EarnKaro & E-Commerce Affiliate Link Generator
+ * StealDeal Affiliate & E-Commerce Link Transformer
  * Monetizes product links across top Indian platforms (Amazon, Flipkart, Myntra, Ajio, etc.)
  */
 
-// User's EarnKaro partner referral code & Amazon tag from environment variables
-const EARNKARO_REF_CODE = import.meta.env?.VITE_EARNKARO_REF_CODE || '5490007';
 const AMAZON_TAG = import.meta.env?.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21';
+const EARNKARO_REF_CODE = import.meta.env?.VITE_EARNKARO_REF_CODE || '5490007';
 
 /**
  * Format Indian Rupees (INR) currency
@@ -20,24 +19,17 @@ export function formatINR(val) {
 }
 
 /**
- * Converts any raw product URL into an EarnKaro monetized link or direct affiliate tag link
- * Prevents recursive double-wrapping if the link is already monetized!
+ * Converts any raw product URL into a clean monetized link with verified Amazon Associate Tag
  * @param {string} rawUrl - Original product landing page URL
- * @param {string} store - Store name (e.g. Amazon.in, Flipkart, Myntra)
- * @returns {string} Single monetized affiliate URL
+ * @param {string} store - Store name
+ * @returns {string} Monetized URL
  */
 export function generateAffiliateUrl(rawUrl, store = '') {
   if (!rawUrl) return '#';
 
   const cleanUrl = rawUrl.trim();
 
-  // GUARD: If the URL is already an EarnKaro link, DO NOT double-wrap!
-  if (cleanUrl.includes('earnkaro.com/share') || cleanUrl.includes('topend.earnkaro.com')) {
-    console.log('✅ [Affiliate Link Guard] Link already contains EarnKaro wrapper:', cleanUrl);
-    return cleanUrl;
-  }
-
-  // 1. Direct tag fallbacks for major Indian retailers
+  // If already contains Amazon associate tag or clean URL, return clean URL
   try {
     const urlObj = new URL(cleanUrl);
     const domain = urlObj.hostname.toLowerCase();
@@ -52,11 +44,10 @@ export function generateAffiliateUrl(rawUrl, store = '') {
       return urlObj.toString();
     }
   } catch (e) {
-    // If URL parsing fails, continue to EarnKaro wrapper
+    // If URL parsing fails, return cleanUrl
   }
 
-  // 2. EarnKaro Universal Link conversion wrapper
-  return `https://topend.earnkaro.com/share?url=${encodeURIComponent(cleanUrl)}`;
+  return cleanUrl;
 }
 
 /**

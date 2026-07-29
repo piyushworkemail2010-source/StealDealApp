@@ -1,14 +1,13 @@
 /**
  * Vercel Serverless Function: Real-Time Live E-Commerce Deals & AI Price Glitch Radar
  * Scrapes REAL LIVE real-time deal streams directly from live Indian e-commerce feeds,
- * evaluates price glitches via NVIDIA NIM AI (Llama 3.1 70B), and monetizes links via EarnKaro.
+ * evaluates price glitches via NVIDIA NIM AI (Llama 3.1 70B), and applies Amazon tag monetization.
  */
 
 export default async function handler(req, res) {
   console.log('📡 [StealDeal API Invoked - Real Live Feed Scraper]', {
     method: req.method,
     amazonTag: process.env.AMAZON_ASSOCIATE_TAG || process.env.VITE_AMAZON_ASSOCIATE_TAG || 'khoshai-21',
-    refCode: process.env.VITE_EARNKARO_REF_CODE || '5490007',
     timestamp: new Date().toISOString()
   });
 
@@ -91,7 +90,7 @@ export default async function handler(req, res) {
             isPriceGlitch: discount >= 30 || title.toLowerCase().includes('loot') || title.toLowerCase().includes('glitch'),
             promoCode: discount > 40 ? 'STEALDEAL' : 'LOOT',
             bankOffer: '10% Instant Discount on HDFC/SBI Credit Cards',
-            rawUrl: rawDealUrl,
+            productUrl: rawDealUrl,
             imageUrl: getStoreDefaultImage(category),
             description: `Verified live deal drop from live feed! Discount active right now.`
           });
@@ -171,21 +170,28 @@ export default async function handler(req, res) {
     }
 
     // -------------------------------------------------------------
-    // STEP 3: Apply EarnKaro & Amazon Tag Link Monetization
+    // STEP 3: Apply Amazon Tag Monetization & Clean Landing Links
     // -------------------------------------------------------------
     const monetizedDeals = finalDeals.map((deal) => {
       const storeName = deal.store || 'Amazon.in';
-      const rawUrl = deal.rawUrl || deal.productUrl || 'https://www.amazon.in';
+      let rawUrl = deal.productUrl || 'https://www.amazon.in';
       
-      // EarnKaro monetization link wrapper
-      const finalUrl = `https://topend.earnkaro.com/share?url=${encodeURIComponent(rawUrl)}`;
+      try {
+        const u = new URL(rawUrl);
+        if (u.hostname.includes('amazon.')) {
+          u.searchParams.set('tag', amazonTag);
+          rawUrl = u.toString();
+        }
+      } catch (e) {
+        // Fallback
+      }
 
       return {
         ...deal,
         id: deal.id || `live-deal-${deal.title?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
         store: storeName,
         storeLogo: getStoreLogo(storeName),
-        productUrl: finalUrl,
+        productUrl: rawUrl,
         imageUrl: deal.imageUrl || getStoreDefaultImage(deal.category),
         verifiedTime: 'Just now ⚡',
         verifiedCount: deal.verifiedCount || (Math.floor(Math.random() * 800) + 300),
